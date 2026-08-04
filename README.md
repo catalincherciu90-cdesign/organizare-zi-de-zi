@@ -92,5 +92,5 @@ sau secretul `ORGANIZER_TOKEN`, dacă e configurat).
 - [x] Panou pentru organizator (ajustare manuală a planurilor abonaților)
 - [ ] Autentificare abonați (cont + istoric pe zile)
 - [ ] Reminder-e (email/push) când planul e „gata"
-- [ ] Liste de cumpărături pentru domeniul mese
+- [x] Liste de cumpărături pentru domeniul mese
 - [ ] Integrare calendar & apps de fitness/somn (tier Premium)
