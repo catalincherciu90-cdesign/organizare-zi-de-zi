@@ -312,6 +312,67 @@ async function loadByCode(code) {
   }
 }
 
+// ————— Export calendar (.ics) —————
+const CAT_ICON = { meal: '🥗', sport: '💪', work: '⏰', free: '🌙', routine: '⏰' };
+
+$('#ics-btn')?.addEventListener('click', () => {
+  if (state.plan && state.plan.blocks && state.plan.blocks.length) downloadICS(state.plan);
+  else toast('Nu ai încă un plan de exportat.');
+});
+
+function downloadICS(plan) {
+  const now = new Date();
+  const p2 = (n) => String(n).padStart(2, '0');
+  const dateStr = `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}`;
+  const stamp = dateStr + 'T' + p2(now.getHours()) + p2(now.getMinutes()) + '00';
+  const blocks = plan.blocks || [];
+
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Organizare Zi de Zi//RO', 'CALSCALE:GREGORIAN'];
+  blocks.forEach((b, i) => {
+    if (!b.time || !/^\d{1,2}:\d{2}$/.test(b.time)) return;
+    const [hh, mm] = b.time.split(':');
+    const start = `${dateStr}T${p2(hh)}${p2(mm)}00`;
+    // Sfârșit: ora blocului următor, sau +45 min
+    let end;
+    const next = blocks[i + 1];
+    if (next && /^\d{1,2}:\d{2}$/.test(next.time || '') && next.time > b.time) {
+      const [nh, nm] = next.time.split(':');
+      end = `${dateStr}T${p2(nh)}${p2(nm)}00`;
+    } else {
+      let eh = parseInt(hh, 10);
+      let em = parseInt(mm, 10) + 45;
+      if (em >= 60) { eh = (eh + 1) % 24; em -= 60; }
+      end = `${dateStr}T${p2(eh)}${p2(em)}00`;
+    }
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${dateStr}-${i}@organizare-zi-de-zi`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART:${start}`,
+      `DTEND:${end}`,
+      `SUMMARY:${icsEscape((CAT_ICON[b.category] || '') + ' ' + (b.title || ''))}`,
+      `DESCRIPTION:${icsEscape(b.detail || '')}`,
+      'END:VEVENT',
+    );
+  });
+  lines.push('END:VCALENDAR');
+
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ziua-mea.ics';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('Am pregătit fișierul pentru calendar 📅');
+}
+
+function icsEscape(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+}
+
 // ————— Persistență —————
 function load() {
   try {
