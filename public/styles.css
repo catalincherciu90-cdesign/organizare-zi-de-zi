@@ -307,6 +307,42 @@ section { padding: 68px 0; }
 .acc-auth-panel h3 { margin: 0 0 18px; font-size: 1.1rem; }
 .acc-form-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
 
+/* ————— Notificări (planul gata) ————— */
+.notification-banner {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(76,175,125,0.14), rgba(76,175,125,0.08));
+  border: 1px solid rgba(76,175,125,0.35);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.banner-content > span {
+  color: var(--text);
+  font-size: 0.95rem;
+  flex: 1;
+}
+.banner-btn {
+  flex-shrink: 0;
+  background: var(--meal);
+  color: #fff;
+  border-color: var(--meal);
+}
+.banner-btn:hover {
+  filter: brightness(1.08);
+}
+
 /* ————— Istoricul abonatului ————— */
 #history-view { margin-top: 4px; }
 #history-list { margin-bottom: 4px; }

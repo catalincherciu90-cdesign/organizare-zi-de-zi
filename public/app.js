@@ -97,6 +97,9 @@ async function generate() {
     state.checked = {};
     state.code = null; // plan nou → încă netrimis
     state.shopping = []; // plan nou → fără listă de cumpărături încă
+    state.notifiedGata = false; // Resetez marcajul de notificare
+    state.notifyOptIn = false; // Resetez opt-in
+    stopPolling(); // Opresc polling-ul
     save();
     if (note) toast(note);
     renderResult(plan, state.checked);
@@ -251,6 +254,17 @@ function showCodeBox(code, status, note) {
   } else {
     orgNote.classList.add('hidden');
   }
+
+  // Arată/ascunde butonul de opt-in pentru notificări
+  const notifyBtn = $('#notify-opt-in-btn');
+  if (notifyBtn) {
+    // Ascunde butonul dacă status e 'gata' sau dacă notificările sunt deja activate
+    if (status === 'gata' || state.notifyOptIn) {
+      notifyBtn.classList.add('hidden');
+    } else {
+      notifyBtn.classList.remove('hidden');
+    }
+  }
 }
 
 $('#submit-btn')?.addEventListener('click', async () => {
@@ -272,6 +286,9 @@ $('#submit-btn')?.addEventListener('click', async () => {
     state.code = data.id;
     state.status = data.status || 'nou';
     state.orgNote = '';
+    state.notifiedGata = false; // Resetez marcajul pentru plan nou
+    state.notifyOptIn = false; // Resetez opt-in (utilizatorul alege din nou dacă vrea notificări)
+    stopPolling(); // Opresc polling-ul anterior
     save();
     renderStatusBoxes({});
     toast('Trimis! Notează-ți codul ca să revii la plan.');
@@ -305,16 +322,39 @@ async function loadByCode(code) {
     const res = await fetch('/api/my?id=' + encodeURIComponent(code));
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Cod inexistent');
+
+    const prevStatus = state.status;
+    const newStatus = data.status;
+
     state.plan = data.plan;
     state.code = code;
-    state.status = data.status;
+    state.status = newStatus;
     state.orgNote = data.note || '';
     state.shopping = data.shoppingList || [];
     state.checked = state.checked || {};
     if (data.nume) state.profile = { ...(state.profile || {}), nume: data.nume };
+
+    // Dacă am schimbat codul, resetez marcajul de notificare
+    if (code !== localStorage.getItem('ozz.lastCode')) {
+      state.notifiedGata = false;
+    }
+    localStorage.setItem('ozz.lastCode', code);
+
+    // Verifică dacă trebuie să anunțe (tranziție la 'gata')
+    if (shouldNotify(prevStatus, newStatus)) {
+      notifyPlanReady(code);
+    }
+
     save();
-    renderResult(data.plan, state.checked, { lookup: true, status: data.status, note: data.note });
-    toast(STATUS_LABEL[data.status] || 'Plan încărcat');
+    renderResult(data.plan, state.checked, { lookup: true, status: newStatus, note: data.note });
+    toast(STATUS_LABEL[newStatus] || 'Plan încărcat');
+
+    // Pornește polling dacă statusul nu e 'gata' și avem opt-in
+    if (state.notifyOptIn && newStatus !== 'gata') {
+      startPolling();
+    } else if (newStatus === 'gata') {
+      stopPolling();
+    }
   } catch (err) {
     toast(err.message || 'Nu am găsit planul.');
   }
@@ -381,12 +421,135 @@ function icsEscape(s) {
   return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
 }
 
+// ————— Notificări la schimbare status —————
+// Funcție pură: returnează true doar când statusul devine 'gata' dintr-o stare anterioară
+function shouldNotify(prevStatus, newStatus) {
+  return newStatus === 'gata' && prevStatus !== 'gata';
+}
+
+// Polling control
+let pollingInterval = null;
+
+function startPolling() {
+  // Nu porni polling-ul dacă nu avem cod sau status e deja 'gata'
+  if (!state.code || state.status === 'gata' || pollingInterval) return;
+
+  // Polling la fiecare 45 de secunde
+  pollingInterval = setInterval(() => {
+    if (state.code && state.status !== 'gata') {
+      loadByCodeForPolling(state.code);
+    } else {
+      stopPolling();
+    }
+  }, 45000);
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+}
+
+// Variantă a loadByCode pentru polling — nu arată toast la status neschimbat
+async function loadByCodeForPolling(code) {
+  if (!code) return;
+  try {
+    const res = await fetch('/api/my?id=' + encodeURIComponent(code));
+    const data = await res.json();
+    if (!res.ok) {
+      // Eroare de rețea — păstrăm polling-ul, va încerca din nou
+      return;
+    }
+
+    const prevStatus = state.status;
+    const newStatus = data.status;
+
+    // Actualizează state
+    state.plan = data.plan;
+    state.code = code;
+    state.status = newStatus;
+    state.orgNote = data.note || '';
+    state.shopping = data.shoppingList || [];
+    state.checked = state.checked || {};
+    if (data.nume) state.profile = { ...(state.profile || {}), nume: data.nume };
+
+    // Verifică dacă trebuie să anunțe
+    if (shouldNotify(prevStatus, newStatus)) {
+      notifyPlanReady(code);
+    }
+
+    save();
+
+    // Actualizează UI dacă planul este vizualizat
+    if ($('#result-view') && !$('#result-view').classList.contains('hidden')) {
+      renderResult(data.plan, state.checked, { lookup: true, status: newStatus, note: data.note });
+      renderStatusBoxes({ lookup: true, status: newStatus, note: data.note });
+    }
+
+    // Oprește polling-ul dacă status e 'gata'
+    if (newStatus === 'gata') {
+      stopPolling();
+    }
+  } catch (err) {
+    // Eroare de rețea — păstrăm polling-ul, va încerca din nou
+  }
+}
+
+// Arată notificare și banner când planul devine gata
+function notifyPlanReady(code) {
+  // Marcează că am notificat deja pentru acest plan
+  state.notifiedGata = true;
+  save();
+
+  // Arată notificare în browser dacă permisiunea e acordată
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('Planul tău e gata 🎉', {
+      body: 'Organizatorul ți-a pregătit planul personalizat. Accesează-l acum!',
+      tag: 'plan-ready-' + code,
+    });
+  }
+
+  // Arată banner în pagină (întotdeauna)
+  showNotificationBanner(code);
+}
+
+// Arată banner de notificare în pagină
+function showNotificationBanner(code) {
+  let banner = $('#gata-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'gata-banner';
+    banner.className = 'notification-banner';
+    const resultView = $('#result-view');
+    if (resultView) {
+      resultView.insertBefore(banner, resultView.firstChild);
+    }
+  }
+
+  banner.innerHTML = `
+    <div class="banner-content">
+      <span>✅ Planul tău e gata! Organizatorul ți-a pregătit o zi complectă.</span>
+      <button class="btn btn-sm banner-btn" id="banner-view-btn">Vezi planul</button>
+    </div>
+  `;
+  banner.classList.remove('hidden');
+
+  // Click pe buton → reîncarcă planul
+  const viewBtn = $('#banner-view-btn');
+  if (viewBtn) {
+    viewBtn.addEventListener('click', () => {
+      loadByCode(code);
+    });
+  }
+}
+
 // ————— Persistență —————
 function load() {
-  const defaults = { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '', accToken: null, accEmail: null };
+  const defaults = { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '', accToken: null, accEmail: null, notifyOptIn: false, notifiedGata: false };
   try {
     const stored = JSON.parse(localStorage.getItem(STORE_KEY));
-    // merge cu defaults — câmpurile noi (accToken, accEmail) apar chiar dacă lipsesc din localStorage vechi
+    // merge cu defaults — câmpurile noi (accToken, accEmail, notifyOptIn, notifiedGata) apar chiar dacă lipsesc din localStorage vechi
     return stored ? { ...defaults, ...stored } : defaults;
   } catch {
     return defaults;
@@ -603,7 +766,64 @@ $('#history-back-btn')?.addEventListener('click', () => {
   if (state.plan) renderResult(state.plan, state.checked);
 });
 
+// ————— Event listeners notificări —————
+$('#notify-opt-in-btn')?.addEventListener('click', async () => {
+  if (!('Notification' in window)) {
+    toast('Notificările nu sunt disponibile în browserul tău.');
+    return;
+  }
+
+  // Dacă permisiunea e deja acordată, activez polling-ul
+  if (Notification.permission === 'granted') {
+    state.notifyOptIn = true;
+    save();
+    const btn = $('#notify-opt-in-btn');
+    if (btn) btn.classList.add('hidden');
+    startPolling();
+    toast('Notificări activate! Te vom anunța când planul e gata.');
+    return;
+  }
+
+  // Dacă e deja refuzată, arăt doar banner (fără a cere din nou)
+  if (Notification.permission === 'denied') {
+    toast('Notificările sunt dezactivate. Vei fi anunțat prin banner pe pagină când planul e gata.');
+    return;
+  }
+
+  // Cere permisiunea
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      state.notifyOptIn = true;
+      save();
+      const btn = $('#notify-opt-in-btn');
+      if (btn) btn.classList.add('hidden');
+      startPolling();
+      toast('Notificări activate! Te vom anunța când planul e gata.');
+    } else if (permission === 'denied') {
+      toast('Notificările sunt dezactivate. Vei fi anunțat prin banner pe pagină când planul e gata.');
+    }
+  } catch (err) {
+    toast('Eroare la activarea notificărilor.');
+  }
+});
+
+// Repornește polling-ul când pagina devine vizibilă
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  // Pagina a redevenit vizibilă
+  if (state.code && state.status !== 'gata' && state.notifyOptIn) {
+    // Verifica imediat statusul
+    loadByCodeForPolling(state.code);
+  }
+});
+
 // ————— Inițializare cont —————
 // Randare imediată (din localStorage), apoi verificare server în background
 renderAccBar();
 verifyAccToken().then(() => renderAccBar());
+
+// Pornește polling-ul dacă avem cod și opt-in activ
+if (state.code && state.status !== 'gata' && state.notifyOptIn) {
+  startPolling();
+}

@@ -90,7 +90,9 @@ sau secretul `ORGANIZER_TOKEN`, dacă e configurat).
 ## Roadmap
 
 - [x] Panou pentru organizator (ajustare manuală a planurilor abonaților)
-- [ ] Autentificare abonați (cont + istoric pe zile)
-- [ ] Reminder-e (email/push) când planul e „gata"
+- [x] Autentificare abonați (cont + istoric pe zile)
 - [x] Liste de cumpărături pentru domeniul mese
-- [ ] Integrare calendar & apps de fitness/somn (tier Premium)
+- [x] Reminder-e în browser când planul e „gata" (notificări + verificare status)
+- [x] Export în calendar (.ics) al planului zilei
+- [ ] Reminder-e prin email / push cu pagina închisă (necesită furnizor extern)
+- [ ] Sincronizare live cu apps de fitness/somn (necesită OAuth per furnizor)
