@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+dist/
+
+# Local env & secrets
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
