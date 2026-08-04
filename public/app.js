@@ -3,11 +3,12 @@
 
 const STORE_KEY = 'ozz.state.v1';
 const CAT_LABEL = { meal: '🥗 Masă', sport: '💪 Sport', work: '⏰ Focus', free: '🌙 Timp liber', routine: '⏰ Rutină' };
-const AGENT_STEPS = [
-  '🥗 Nutri pregătește mesele...',
-  '💪 Forța construiește antrenamentul...',
-  '⏰ Ritm organizează blocurile de timp...',
-  '🌙 Calm planifică relaxarea și somnul...',
+const THINKING_STEPS = [
+  'Analizăm programul tău...',
+  'Pregătim mesele zilei...',
+  'Punem la punct mișcarea...',
+  'Structurăm timpul de muncă și pauzele...',
+  'Adăugăm timp de relaxare și somn...',
 ];
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -42,7 +43,7 @@ function showAppStep(step) {
   $('#result-view').classList.toggle('hidden', step !== 'result');
   if (step === 'form') {
     $('#app-title').textContent = 'Hai să-ți construim ziua';
-    $('#app-sub').textContent = 'Completează câteva detalii — agenții fac restul.';
+    $('#app-sub').textContent = 'Completează câteva detalii — ne ocupăm noi de rest.';
   } else if (step === 'result') {
     $('#app-title').textContent = state.profile?.nume ? `Ziua ta, ${state.profile.nume}` : 'Planul tău de azi';
     $('#app-sub').textContent = 'Bifează pe măsură ce avansezi.';
@@ -98,10 +99,10 @@ async function generate() {
 
 function startThinking() {
   let i = 0;
-  $('#thinking').textContent = AGENT_STEPS[0];
+  $('#thinking').textContent = THINKING_STEPS[0];
   return setInterval(() => {
-    i = (i + 1) % AGENT_STEPS.length;
-    $('#thinking').textContent = AGENT_STEPS[i];
+    i = (i + 1) % THINKING_STEPS.length;
+    $('#thinking').textContent = THINKING_STEPS[i];
   }, 1100);
 }
 
@@ -110,7 +111,7 @@ function renderResult(plan, source, checked = {}) {
   showAppStep('result');
 
   $('#plan-summary-text').textContent = plan.summary || '';
-  $('#plan-src').textContent = source === 'ai' ? '✨ Generat de agenți AI' : '✨ Plan generat (mod demo)';
+  $('#plan-src').textContent = '🗓️ Planul tău de azi';
 
   const timeline = $('#timeline');
   timeline.innerHTML = '';
@@ -124,7 +125,7 @@ function renderResult(plan, source, checked = {}) {
       <div class="b-time">${escapeHtml(b.time || '')}</div>
       <div>
         <div class="b-title">${escapeHtml(b.title || '')}
-          <span class="b-agent">${escapeHtml(b.agent || '')}</span>
+          <span class="b-cat">${escapeHtml(CAT_LABEL[b.category] || '')}</span>
         </div>
         <div class="b-detail">${escapeHtml(b.detail || '')}</div>
       </div>

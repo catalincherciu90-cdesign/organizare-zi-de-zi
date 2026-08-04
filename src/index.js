@@ -1,5 +1,5 @@
 // Worker principal — Organizare Zi de Zi
-// Servește site-ul static (binding ASSETS) și tratează API-ul agenților AI.
+// Servește site-ul static (binding ASSETS) și tratează API-ul de organizare.
 
 import { handlePlan } from './plan.js';
 
@@ -7,7 +7,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // API: generarea planului zilnic de către agenți
+    // API: pregătirea planului zilnic
     if (url.pathname === '/api/plan') {
       if (request.method !== 'POST') {
         return new Response('Method Not Allowed', { status: 405, headers: { allow: 'POST' } });

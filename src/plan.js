@@ -1,38 +1,26 @@
-// Logica agenților AI — generarea planului zilnic.
+// Logica de organizare — pregătirea planului zilnic personalizat.
 // Folosită de Worker pentru ruta POST /api/plan.
 //
-// Env vars (Cloudflare → Worker → Settings → Variables):
-//   ANTHROPIC_API_KEY  — cheia Claude API (opțional; fără ea rulează în mod demo)
+// Env vars (opționale — Cloudflare → Worker → Settings → Variables):
+//   ANTHROPIC_API_KEY  — dacă e setată, planul e generat printr-un model; fără ea rulează în mod demo
 //   ANTHROPIC_MODEL    — model id (default: claude-sonnet-5)
 
-const AGENTS = {
-  Nutri: { emoji: '🥗', rol: 'coach de nutriție', focus: 'mese echilibrate, hidratare, gustări sănătoase' },
-  Forța: { emoji: '💪', rol: 'coach de sport', focus: 'antrenamente potrivite nivelului, mișcare, recuperare' },
-  Ritm:  { emoji: '⏰', rol: 'organizator de timp', focus: 'rutine, blocuri de muncă/focus, priorități' },
-  Calm:  { emoji: '🌙', rol: 'coach de wellbeing', focus: 'timp liber, relaxare, somn de calitate' },
-};
+const SYSTEM_PROMPT = `Pregătești un program pentru O ZI, realist și personalizat, în numele echipei „Organizare Zi de Zi" — un serviciu de organizare personală. Primești profilul unui abonat și construiești planul zilei lui, în limba română.
 
-const SYSTEM_PROMPT = `Ești echipa de agenți AI din aplicația „Organizare Zi de Zi", un serviciu de abonament care ajută oamenii să-și organizeze viața de zi cu zi. Cei 4 agenți-coach sunt:
-- 🥗 Nutri (nutriție & mese)
-- 💪 Forța (sport & mișcare)
-- ⏰ Ritm (organizare timp & rutine)
-- 🌙 Calm (timp liber, somn, wellbeing)
-
-Primești profilul unui abonat și construiești un program pentru O ZI, realist și personalizat, în limba română.
+Domenii de acoperit: mese & nutriție, mișcare & sport, timp & rutine, relaxare & somn.
 
 Reguli:
 - Respectă ora de trezire, ora de culcare și programul de lucru din profil.
 - Include 3-5 mese/gustări adaptate obiectivului și restricțiilor alimentare.
 - Include mișcare/sport potrivit nivelului de fitness și timpului disponibil.
 - Alternează blocuri de muncă/focus cu pauze și timp liber.
-- Fiecare bloc are un agent responsabil (Nutri/Forța/Ritm/Calm).
 - Ton prietenos, motivant, concret. Fără text în plus.
 
 Răspunde DOAR cu un obiect JSON valid, fără markdown, cu structura:
 {
   "summary": "1-2 propoziții care rezumă ziua",
   "blocks": [
-    { "time": "07:00", "title": "titlu scurt", "category": "meal|sport|work|free|routine", "agent": "Nutri|Forța|Ritm|Calm", "detail": "1 propoziție cu ce presupune" }
+    { "time": "07:00", "title": "titlu scurt", "category": "meal|sport|work|free|routine", "detail": "1 propoziție cu ce presupune" }
   ],
   "tips": ["3 sfaturi scurte pentru ziua respectivă"]
 }
@@ -48,23 +36,23 @@ export async function handlePlan(request, env) {
 
   const cleaned = sanitizeProfile(profile);
 
-  // Fără cheie API → mod demo (plan generat local, complet funcțional)
+  // Fără cheie configurată → mod demo (plan generat local, complet funcțional)
   if (!env.ANTHROPIC_API_KEY) {
     return json({ plan: demoPlan(cleaned), source: 'demo' });
   }
 
   try {
-    const plan = await generateWithClaude(cleaned, env);
-    return json({ plan, source: 'ai' });
+    const plan = await generatePlan(cleaned, env);
+    return json({ plan, source: 'assist' });
   } catch {
-    // Degradare grațioasă: dacă apelul AI eșuează, tot livrăm un plan util.
-    return json({ plan: demoPlan(cleaned), source: 'demo', note: 'AI indisponibil momentan.' });
+    // Degradare grațioasă: dacă generarea eșuează, tot livrăm un plan util.
+    return json({ plan: demoPlan(cleaned), source: 'demo' });
   }
 }
 
-async function generateWithClaude(profile, env) {
+async function generatePlan(profile, env) {
   const model = env.ANTHROPIC_MODEL || 'claude-sonnet-5';
-  const userMsg = `Profil abonat:\n${JSON.stringify(profile, null, 2)}\n\nGenerează planul zilei în format JSON.`;
+  const userMsg = `Profil abonat:\n${JSON.stringify(profile, null, 2)}\n\nPregătește planul zilei în format JSON.`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -81,7 +69,7 @@ async function generateWithClaude(profile, env) {
     }),
   });
 
-  if (!res.ok) throw new Error(`Claude API ${res.status}`);
+  if (!res.ok) throw new Error(`API ${res.status}`);
   const data = await res.json();
   const text = (data.content || []).map((c) => c.text || '').join('').trim();
   const parsed = JSON.parse(extractJson(text));
@@ -99,7 +87,6 @@ function extractJson(text) {
 
 function normalizePlan(p) {
   const cats = ['meal', 'sport', 'work', 'free', 'routine'];
-  const agents = Object.keys(AGENTS);
   return {
     summary: String(p.summary || '').slice(0, 400),
     blocks: (Array.isArray(p.blocks) ? p.blocks : [])
@@ -107,7 +94,6 @@ function normalizePlan(p) {
         time: String(b.time || '').slice(0, 5),
         title: String(b.title || '').slice(0, 80),
         category: cats.includes(b.category) ? b.category : 'routine',
-        agent: agents.includes(b.agent) ? b.agent : 'Ritm',
         detail: String(b.detail || '').slice(0, 240),
       }))
       .sort((a, b) => a.time.localeCompare(b.time)),
@@ -130,7 +116,7 @@ function sanitizeProfile(p = {}) {
   };
 }
 
-// ————— plan demo (fallback fără AI) —————
+// ————— plan demo (fallback local) —————
 
 function demoPlan(p) {
   const wake = p.trezire || '07:00';
@@ -157,21 +143,21 @@ function demoPlan(p) {
   };
 
   const blocks = [
-    { time: wake, title: 'Trezire & hidratare', category: 'routine', agent: 'Ritm', detail: 'Un pahar cu apă și 5 min de întindere ca să pornești ziua.' },
-    { time: at(0, 30), title: 'Mic dejun', category: 'meal', agent: 'Nutri', detail: micDejun + '.' },
-    { time: at(1), title: 'Mișcare de dimineață', category: 'sport', agent: 'Forța', detail: sport + '.' },
-    { time: at(2, 30), title: 'Bloc de focus 1', category: 'work', agent: 'Ritm', detail: 'Cea mai importantă sarcină a zilei, fără notificări.' },
-    { time: at(5), title: 'Gustare', category: 'meal', agent: 'Nutri', detail: 'Un fruct și o mână de nuci pentru energie constantă.' },
-    { time: at(5, 30), title: 'Bloc de focus 2', category: 'work', agent: 'Ritm', detail: 'Sarcini de intensitate medie și răspuns la mesaje.' },
-    { time: at(7), title: 'Prânz', category: 'meal', agent: 'Nutri', detail: 'Proteină slabă, legume și o sursă de carbohidrați complecși.' },
-    { time: at(8), title: 'Pauză activă', category: 'free', agent: 'Calm', detail: 'Plimbare scurtă sau 10 min fără ecrane.' },
-    { time: at(10), title: 'Timp liber', category: 'free', agent: 'Calm', detail: p.timpLiber ? `Timp pentru: ${p.timpLiber}.` : 'Un hobby sau timp cu cei dragi.' },
-    { time: at(11, 30), title: 'Cină ușoară', category: 'meal', agent: 'Nutri', detail: 'Masă ușoară cu legume și proteină, cu 3h înainte de somn.' },
-    { time: p.culcare || '23:00', title: 'Rutină de somn', category: 'routine', agent: 'Calm', detail: 'Fără ecrane 30 min înainte, lumină scăzută, respirație lentă.' },
+    { time: wake, title: 'Trezire & hidratare', category: 'routine', detail: 'Un pahar cu apă și 5 min de întindere ca să pornești ziua.' },
+    { time: at(0, 30), title: 'Mic dejun', category: 'meal', detail: micDejun + '.' },
+    { time: at(1), title: 'Mișcare de dimineață', category: 'sport', detail: sport + '.' },
+    { time: at(2, 30), title: 'Bloc de focus 1', category: 'work', detail: 'Cea mai importantă sarcină a zilei, fără notificări.' },
+    { time: at(5), title: 'Gustare', category: 'meal', detail: 'Un fruct și o mână de nuci pentru energie constantă.' },
+    { time: at(5, 30), title: 'Bloc de focus 2', category: 'work', detail: 'Sarcini de intensitate medie și răspuns la mesaje.' },
+    { time: at(7), title: 'Prânz', category: 'meal', detail: 'Proteină slabă, legume și o sursă de carbohidrați complecși.' },
+    { time: at(8), title: 'Pauză activă', category: 'free', detail: 'Plimbare scurtă sau 10 min fără ecrane.' },
+    { time: at(10), title: 'Timp liber', category: 'free', detail: p.timpLiber ? `Timp pentru: ${p.timpLiber}.` : 'Un hobby sau timp cu cei dragi.' },
+    { time: at(11, 30), title: 'Cină ușoară', category: 'meal', detail: 'Masă ușoară cu legume și proteină, cu 3h înainte de somn.' },
+    { time: p.culcare || '23:00', title: 'Rutină de somn', category: 'routine', detail: 'Fără ecrane 30 min înainte, lumină scăzută, respirație lentă.' },
   ];
 
   return {
-    summary: `Un plan echilibrat pentru ${p.nume || 'tine'}, construit în jurul obiectivului „${p.obiectiv || 'echilibru'}". Cei 4 agenți ți-au împărțit ziua în mese, mișcare, focus și odihnă.`,
+    summary: `Un plan echilibrat pentru ${p.nume || 'tine'}, construit în jurul obiectivului „${p.obiectiv || 'echilibru'}". Ți-am împărțit ziua în mese, mișcare, focus și odihnă.`,
     blocks,
     tips: [
       obiectivTip[p.obiectiv] || 'Bea minim 6 pahare de apă pe parcursul zilei.',

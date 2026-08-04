@@ -1,7 +1,7 @@
 {
   "name": "organizare-zi-de-zi",
   "version": "1.0.0",
-  "description": "Asistent AI de abonament care organizează viața de zi cu zi a abonaților: mese, sport, timp liber, rutine — cu 4 agenți-coach (Nutri, Forța, Ritm, Calm).",
+  "description": "Serviciu de abonament în care un organizator personal organizează viața de zi cu zi a abonaților: mese, sport, timp liber, rutine și somn.",
   "private": true,
   "type": "module",
   "scripts": {

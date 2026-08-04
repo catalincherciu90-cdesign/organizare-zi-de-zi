@@ -190,7 +190,7 @@ section { padding: 68px 0; }
 .block-card.done .b-title { text-decoration: line-through; }
 .block-card .b-time { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--muted); font-size: 0.95rem; }
 .block-card .b-title { font-weight: 600; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-.block-card .b-agent { font-size: 0.72rem; font-weight: 700; color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); padding: 2px 9px; border-radius: 999px; }
+.block-card .b-cat { font-size: 0.72rem; font-weight: 700; color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); padding: 2px 9px; border-radius: 999px; }
 .block-card .b-detail { color: var(--muted); font-size: 0.9rem; margin-top: 3px; }
 .check { appearance: none; width: 26px; height: 26px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; display: grid; place-items: center; transition: all 0.15s; background: var(--bg); }
 .check:checked { background: var(--meal); border-color: var(--meal); }
