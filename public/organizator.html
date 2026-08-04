@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panou organizator — Organizare Zi de Zi</title>
+  <meta name="robots" content="noindex" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="logo"><span class="dot">🗂️</span> Panou organizator</a>
+      <nav class="nav">
+        <a href="/" class="nav-link">← Site public</a>
+        <button class="btn btn-ghost btn-sm hidden" id="logout-btn">Ieși</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-wrap">
+    <div class="container">
+
+      <!-- Login -->
+      <div id="gate" class="panel" style="max-width:440px;margin:40px auto">
+        <h2 style="margin-top:0">Acces organizator</h2>
+        <p style="color:var(--muted)">Introdu tokenul de organizator ca să vezi cererile abonaților.</p>
+        <div class="field">
+          <label for="token">Token organizator</label>
+          <input id="token" type="password" placeholder="ORGANIZER_TOKEN" />
+        </div>
+        <button class="btn btn-primary btn-block" id="login-btn" style="margin-top:14px">Intră</button>
+        <p id="gate-msg" class="form-error hidden"></p>
+      </div>
+
+      <!-- Lista cererilor -->
+      <div id="list-view" class="hidden">
+        <div class="app-head">
+          <div>
+            <h2 id="list-title">Cererile abonaților</h2>
+            <p id="list-sub">Alege o cerere ca să ajustezi planul.</p>
+          </div>
+          <button class="btn btn-ghost" id="reload-btn">↻ Reîncarcă</button>
+        </div>
+        <div class="filters" id="filters">
+          <button class="chip-filter active" data-filter="all">Toate</button>
+          <button class="chip-filter" data-filter="nou">🕐 Noi</button>
+          <button class="chip-filter" data-filter="in_lucru">✍️ În lucru</button>
+          <button class="chip-filter" data-filter="gata">✅ Gata</button>
+        </div>
+        <div id="req-list" class="req-list"></div>
+        <div id="empty" class="empty hidden">Nicio cerere încă. Când un abonat trimite un plan, apare aici.</div>
+      </div>
+
+      <!-- Editor plan -->
+      <div id="editor-view" class="hidden">
+        <div class="app-head">
+          <button class="btn btn-ghost" id="back-btn">← Înapoi la listă</button>
+          <button class="btn btn-primary" id="save-btn">💾 Salvează planul</button>
+        </div>
+
+        <div class="editor-grid">
+          <!-- Profil abonat -->
+          <aside class="panel profile-panel">
+            <h3 style="margin-top:0">Abonat</h3>
+            <dl class="profile-dl" id="profile-dl"></dl>
+            <div class="field" style="margin-top:16px">
+              <label for="ed-status">Status</label>
+              <select id="ed-status">
+                <option value="nou">🕐 Nou</option>
+                <option value="in_lucru">✍️ În lucru</option>
+                <option value="gata">✅ Gata</option>
+              </select>
+            </div>
+            <div class="field" style="margin-top:12px">
+              <label for="ed-note">Mesaj pentru abonat (opțional)</label>
+              <textarea id="ed-note" placeholder="ex: Ți-am mutat sportul seara, cum ai cerut."></textarea>
+            </div>
+          </aside>
+
+          <!-- Plan editabil -->
+          <section class="panel">
+            <div class="field">
+              <label for="ed-summary">Rezumatul zilei</label>
+              <textarea id="ed-summary"></textarea>
+            </div>
+
+            <div class="ed-blocks-head">
+              <h3>Blocuri</h3>
+              <button class="btn btn-ghost btn-sm" id="add-block">+ Adaugă bloc</button>
+            </div>
+            <div id="ed-blocks"></div>
+
+            <div class="field" style="margin-top:18px">
+              <label for="ed-tips">Sfaturi (unul pe linie)</label>
+              <textarea id="ed-tips" rows="3"></textarea>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script src="/organizator.js"></script>
+</body>
+</html>

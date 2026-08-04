@@ -199,6 +199,13 @@
             <span><i style="background:var(--free)"></i> Timp liber</span>
             <span><i style="background:var(--routine)"></i> Rutine</span>
           </div>
+          <div class="check-code">
+            <span>Ai deja un cod de la o cerere trimisă?</span>
+            <div class="check-code-row">
+              <input id="lookup-code" type="text" placeholder="ex: k7m2p9qx" maxlength="12" />
+              <button class="btn btn-ghost btn-sm" id="lookup-btn">Vezi planul meu</button>
+            </div>
+          </div>
         </div>
 
         <!-- Loading -->
@@ -225,6 +232,29 @@
             <h4>💡 Sfaturi pentru ziua de azi</h4>
             <ul id="tips-list"></ul>
           </div>
+
+          <!-- Trimite organizatorului -->
+          <div class="submit-box" id="submit-box">
+            <div>
+              <b>Vrei ca organizatorul tău să-l personalizeze?</b>
+              <p>Trimite-i planul și profilul tău — îl ajustează și îl primești înapoi, gata pregătit.</p>
+            </div>
+            <button class="btn btn-primary" id="submit-btn">📨 Trimite organizatorului</button>
+          </div>
+
+          <!-- Confirmare + cod -->
+          <div class="code-box hidden" id="code-box">
+            <div class="status-banner" id="status-banner"></div>
+            <p id="code-note"></p>
+            <div class="code-row">
+              <span>Codul tău:</span>
+              <code id="code-val"></code>
+              <button class="btn btn-ghost btn-sm" id="copy-code">Copiază</button>
+              <button class="btn btn-ghost btn-sm" id="refresh-code">↻ Verifică statusul</button>
+            </div>
+            <p id="org-note" class="org-note hidden"></p>
+          </div>
+
           <div style="display:flex;gap:12px;margin-top:26px;flex-wrap:wrap">
             <button class="btn btn-primary" id="regen-btn">↻ Pregătește alt plan</button>
             <button class="btn btn-ghost" id="edit-btn">✎ Modifică profilul</button>
@@ -237,7 +267,7 @@
   <footer class="site-footer">
     <div class="container">
       <span>🗓️ Organizare Zi de Zi — organizatorul tău personal pentru viața de zi cu zi.</span>
-      <span>Mese · Mișcare · Timp · Relaxare</span>
+      <span>Mese · Mișcare · Timp · Relaxare · <a href="/organizator" class="foot-link">Acces organizator</a></span>
     </div>
   </footer>
 

@@ -1,51 +1,45 @@
 # 🗓️ Organizare Zi de Zi
 
-Serviciu de **abonament** în care o persoană dedicată — **organizatorul tău personal** —
+Serviciu de **abonament** în care o persoană dedicată — **organizatorul personal** —
 îți organizează viața de zi cu zi: **mese, sport/mișcare, timp liber, rutine și somn**.
 
-Abonatul completează un profil scurt (obiectiv, program, nivel de fitness, preferințe
-alimentare, timp liber), iar aplicația îi pregătește un **plan personalizat pentru ziua
-respectivă**, pe care îl poate bifa punct cu punct.
+Abonatul completează un profil scurt și primește un plan de start pentru zi. Apoi îl poate
+**trimite organizatorului**, care îl ajustează manual dintr-un panou dedicat și îl marchează
+ca „gata". Abonatul revine cu un cod și vede planul personalizat.
 
-Organizarea acoperă patru domenii:
+Organizarea acoperă patru domenii: 🥗 mese & nutriție · 💪 mișcare & sport · ⏰ timp & rutine · 🌙 relaxare & somn.
 
-| Domeniu | Se ocupă de |
-|---------|-------------|
-| 🥗 **Mese & nutriție** | Meniuri zilnice, gustări, hidratare, adaptate la restricții |
-| 💪 **Mișcare & sport** | Antrenamente potrivite nivelului și timpului disponibil |
-| ⏰ **Timp & rutine** | Blocuri de focus, priorități, rutine care rămân |
-| 🌙 **Relaxare & somn** | Timp liber, deconectare, rutină de somn |
+## Fluxul complet
 
-## Cum funcționează
-
-1. **Landing page** — prezintă serviciul, domeniile organizate și cele 3 planuri de abonament (Start / Echilibru / Premium).
-2. **Onboarding** — formular scurt cu profilul abonatului.
-3. **Pregătire plan** — frontend-ul apelează `POST /api/plan` (tratat de Worker), care
-   construiește programul zilei în format JSON.
-4. **Dashboard zilnic** — planul e afișat ca timeline colorat pe categorii, cu checklist și
-   bară de progres. Progresul și profilul se salvează local (`localStorage`).
-
-> **Mod demo (implicit):** `/api/plan` generează un plan realist local (bazat pe orele de
-> trezire/culcare, obiectiv, nivel de fitness și preferințe), fără nicio configurare. Opțional,
-> planul poate fi generat printr-un model (setând `ANTHROPIC_API_KEY`), dar nu e necesar.
+```
+Abonat                          Organizator (/organizator)
+──────                          ──────────────────────────
+1. Completează profilul
+2. Primește un plan de start
+3. „Trimite organizatorului" ──▶ 4. Vede cererea în listă
+   (primește un cod)              5. Ajustează blocurile, rezumatul,
+                                     sfaturile + scrie o notă
+6. Revine cu codul          ◀──── 7. Salvează → status „gata"
+7. Vede planul personalizat
+```
 
 ## Structură
 
 ```
 organizare-zi-de-zi/
-├── public/              # frontend static (servit de Worker prin binding ASSETS)
-│   ├── index.html       # landing + aplicația (planner)
-│   ├── styles.css       # design system (dark theme)
-│   └── app.js           # navigare, apel API, checklist + progres
+├── public/
+│   ├── index.html          # landing + aplicația abonatului
+│   ├── app.js              # profil, plan, checklist, trimitere + status
+│   ├── organizator.html    # panoul organizatorului
+│   ├── organizator.js      # listă cereri + editor de plan
+│   └── styles.css          # design system (dark theme)
 ├── src/
-│   ├── index.js         # Worker: rutare (/api/plan) + servire assets statice
-│   └── plan.js          # logica de pregătire a planului (cu fallback demo)
-├── wrangler.toml        # Cloudflare Worker + Static Assets
+│   ├── index.js            # Worker: rutare API + servire assets
+│   ├── plan.js             # pregătirea planului (cu fallback demo)
+│   └── store.js            # stocarea cererilor în Cloudflare KV
+├── wrangler.toml           # Cloudflare Worker + Static Assets
 └── package.json
 ```
-
-> Aplicația e un **Cloudflare Worker cu Static Assets**: Worker-ul (`src/index.js`) servește
-> fișierele din `public/` și tratează ruta `POST /api/plan`.
 
 ## Rulare locală
 
@@ -54,54 +48,62 @@ npm install
 npm run dev          # → http://localhost:8787
 ```
 
+Pentru panou și trimitere în local, adaugă un fișier `.dev.vars`:
+
+```
+ORGANIZER_TOKEN = "un-token-de-test"
+```
+
+și un namespace KV de preview (vezi mai jos). Fără KV, site-ul și generarea de plan merg,
+dar trimiterea/panoul răspund cu „KV neconfigurat".
+
 ## Deploy pe Cloudflare (Workers)
 
 ```bash
 npm run deploy       # npx wrangler deploy
 ```
 
-Prin integrarea Git (Workers Builds), un push pe `main` declanșează automat deploy-ul.
-Comanda de deploy folosită de build: `npx wrangler deploy`.
+Prin integrarea Git (Workers Builds), un push pe `main` declanșează deploy-ul automat.
+
+### Activarea panoului de organizator (o singură dată)
+
+Panoul și trimiterea planurilor au nevoie de **stocare KV** și de un **token de organizator**:
+
+```bash
+# 1. Creează namespace-ul KV
+npx wrangler kv namespace create OZZ
+#    → copiază id-ul returnat în wrangler.toml (secțiunea [[kv_namespaces]], decomentează)
+
+# 2. Setează tokenul de acces al organizatorului
+npx wrangler secret put ORGANIZER_TOKEN
+
+# 3. Redeploy
+npm run deploy
+```
+
+Organizatorul accesează panoul la **`/organizator`** și se autentifică cu tokenul setat.
+
+> Fără acești doi pași, aplicația tot funcționează: site-ul public + generarea planului de
+> start (mod demo). Doar trimiterea și panoul se activează după setup.
 
 ## API
 
-### `POST /api/plan`
+| Metodă | Rută | Cine | Descriere |
+|--------|------|------|-----------|
+| POST | `/api/plan` | abonat | Generează planul de start din profil |
+| POST | `/api/submit` | abonat | Trimite planul + profilul → returnează un cod |
+| GET | `/api/my?id=COD` | abonat | Vede statusul + planul (posibil ajustat) |
+| GET | `/api/org/requests` | organizator | Lista cererilor (necesită `x-org-token`) |
+| GET | `/api/org/request?id=ID` | organizator | O cerere completă |
+| PUT | `/api/org/request?id=ID` | organizator | Salvează plan / status / notă |
 
-**Body** (profil abonat):
-```json
-{
-  "nume": "Ana",
-  "obiectiv": "energie",
-  "trezire": "07:00",
-  "culcare": "23:00",
-  "program": "9-17",
-  "fitness": "mediu",
-  "dieta": "vegetarian",
-  "timpLiber": "citit, plimbări",
-  "note": "prefer sport seara"
-}
-```
-
-**Răspuns**:
-```json
-{
-  "plan": {
-    "summary": "Un plan echilibrat pentru Ana...",
-    "blocks": [
-      { "time": "07:00", "title": "Trezire & hidratare", "category": "routine", "detail": "..." }
-    ],
-    "tips": ["...", "..."]
-  },
-  "source": "demo"
-}
-```
-
-`category` ∈ `meal | sport | work | free | routine`.
+Rutele de organizator cer header-ul `x-org-token: <ORGANIZER_TOKEN>`.
+`category` a unui bloc ∈ `meal | sport | work | free | routine`. Statusuri: `nou | in_lucru | gata`.
 
 ## Roadmap
 
-- [ ] Autentificare abonați + planuri persistente pe zile (Cloudflare D1)
-- [ ] Panou pentru organizator (ajustare manuală a planurilor abonaților)
-- [ ] Reminder-e (email/push) per bloc
+- [x] Panou pentru organizator (ajustare manuală a planurilor abonaților)
+- [ ] Autentificare abonați (cont + istoric pe zile)
+- [ ] Reminder-e (email/push) când planul e „gata"
 - [ ] Liste de cumpărături pentru domeniul mese
 - [ ] Integrare calendar & apps de fitness/somn (tier Premium)

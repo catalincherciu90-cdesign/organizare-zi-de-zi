@@ -3,14 +3,29 @@ main = "src/index.js"
 compatibility_date = "2024-11-01"
 
 # Site static (public/) servit de Worker prin binding-ul ASSETS.
-# Worker-ul (src/index.js) tratează /api/plan; restul e servit din public/.
+# Worker-ul (src/index.js) tratează /api/*; restul e servit din public/.
 [assets]
 directory = "./public"
 binding = "ASSETS"
 
-# Deploy:  npx wrangler deploy
-# Dev:     npx wrangler dev
+# ————— Stocare cereri abonați (Cloudflare KV) —————
+# Panoul organizatorului (/organizator) și trimiterea planurilor au nevoie de KV.
+# Fără binding-ul de mai jos, aplicația tot pornește (site + generare plan demo),
+# dar trimiterea/lista cererilor răspund cu un mesaj „KV neconfigurat".
 #
-# (Opțional) Cheia Claude API — fără ea aplicația rulează în mod demo:
-#   npx wrangler secret put ANTHROPIC_API_KEY
-# Model configurabil (default claude-sonnet-5) via variabila ANTHROPIC_MODEL.
+# Ca să activezi:
+#   1. Creează namespace-ul:   npx wrangler kv namespace create OZZ
+#   2. Copiază id-ul returnat mai jos și decomentează:
+#
+# [[kv_namespaces]]
+# binding = "OZZ"
+# id = "PUNE_AICI_ID-UL_KV"
+
+# ————— Deploy —————
+#   npx wrangler deploy
+#
+# ————— Variabile necesare pentru panoul organizatorului —————
+#   Token de acces al organizatorului (obligatoriu pentru /organizator):
+#     npx wrangler secret put ORGANIZER_TOKEN
+#   (Opțional) generare plan printr-un model, în loc de mod demo:
+#     npx wrangler secret put ANTHROPIC_API_KEY

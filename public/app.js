@@ -3,6 +3,11 @@
 
 const STORE_KEY = 'ozz.state.v1';
 const CAT_LABEL = { meal: '🥗 Masă', sport: '💪 Sport', work: '⏰ Focus', free: '🌙 Timp liber', routine: '⏰ Rutină' };
+const STATUS_LABEL = {
+  nou: '🕐 Trimis — în așteptare',
+  in_lucru: '✍️ Organizatorul lucrează la planul tău',
+  gata: '✅ Gata — pregătit de organizatorul tău',
+};
 const THINKING_STEPS = [
   'Analizăm programul tău...',
   'Pregătim mesele zilei...',
@@ -30,7 +35,7 @@ document.addEventListener('click', (e) => {
   if (target === 'app') {
     show('app');
     // dacă avem deja un plan salvat, îl arătăm direct
-    if (state.plan) renderResult(state.plan, state.source, state.checked);
+    if (state.plan) renderResult(state.plan, state.checked);
     else showAppStep('form');
   } else {
     show('landing');
@@ -82,13 +87,13 @@ async function generate() {
       body: JSON.stringify(state.profile),
     });
     if (!res.ok) throw new Error('request failed');
-    const { plan, source, note } = await res.json();
+    const { plan, note } = await res.json();
     state.plan = plan;
-    state.source = source;
     state.checked = {};
+    state.code = null; // plan nou → încă netrimis
     save();
     if (note) toast(note);
-    renderResult(plan, source, state.checked);
+    renderResult(plan, state.checked);
   } catch (err) {
     toast('Nu am putut genera planul. Încearcă din nou.');
     showAppStep('form');
@@ -107,11 +112,14 @@ function startThinking() {
 }
 
 // ————— Randare rezultat —————
-function renderResult(plan, source, checked = {}) {
+// opts.lookup = true → plan vizualizat după cod (venit de la organizator)
+function renderResult(plan, checked = {}, opts = {}) {
   showAppStep('result');
 
   $('#plan-summary-text').textContent = plan.summary || '';
-  $('#plan-src').textContent = '🗓️ Planul tău de azi';
+  $('#plan-src').textContent = opts.lookup ? '🗓️ Planul tău, de la organizator' : '🗓️ Planul tău de azi';
+
+  renderStatusBoxes(opts);
 
   const timeline = $('#timeline');
   timeline.innerHTML = '';
@@ -168,12 +176,113 @@ function updateProgress(plan) {
     done === total && total > 0 ? `🎉 Toate cele ${total} blocuri bifate — zi reușită!` : `${done} din ${total} bifate`;
 }
 
+// ————— Trimitere către organizator + status —————
+function renderStatusBoxes(opts = {}) {
+  const submitBox = $('#submit-box');
+  const codeBox = $('#code-box');
+  if (opts.lookup) {
+    // Vizualizare după cod
+    submitBox.classList.add('hidden');
+    showCodeBox(state.code, opts.status, opts.note);
+  } else if (state.code) {
+    // Plan propriu, deja trimis
+    submitBox.classList.add('hidden');
+    showCodeBox(state.code, state.status, state.orgNote);
+  } else {
+    // Plan propriu, netrimis
+    submitBox.classList.remove('hidden');
+    codeBox.classList.add('hidden');
+  }
+}
+
+function showCodeBox(code, status, note) {
+  const codeBox = $('#code-box');
+  codeBox.classList.remove('hidden');
+  $('#status-banner').textContent = STATUS_LABEL[status] || STATUS_LABEL.nou;
+  $('#status-banner').dataset.status = status || 'nou';
+  $('#code-note').textContent =
+    status === 'gata'
+      ? 'Organizatorul ți-a pregătit planul. Îl vezi mai sus.'
+      : 'Ți-am trimis cererea organizatorului. Revino cu codul de mai jos ca să vezi planul ajustat.';
+  $('#code-val').textContent = code || '—';
+  const orgNote = $('#org-note');
+  if (note) {
+    orgNote.textContent = '📝 Mesaj de la organizator: ' + note;
+    orgNote.classList.remove('hidden');
+  } else {
+    orgNote.classList.add('hidden');
+  }
+}
+
+$('#submit-btn')?.addEventListener('click', async () => {
+  if (!state.plan) return;
+  const btn = $('#submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Se trimite...';
+  try {
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ profile: state.profile, plan: state.plan }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Eroare');
+    state.code = data.id;
+    state.status = data.status || 'nou';
+    state.orgNote = '';
+    save();
+    renderStatusBoxes({});
+    toast('Trimis! Notează-ți codul ca să revii la plan.');
+  } catch (err) {
+    toast(err.message || 'Nu am putut trimite. Încearcă din nou.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📨 Trimite organizatorului';
+  }
+});
+
+$('#copy-code')?.addEventListener('click', async () => {
+  const code = $('#code-val').textContent;
+  try {
+    await navigator.clipboard.writeText(code);
+    toast('Cod copiat: ' + code);
+  } catch {
+    toast('Codul tău: ' + code);
+  }
+});
+
+$('#refresh-code')?.addEventListener('click', () => loadByCode(state.code));
+$('#lookup-btn')?.addEventListener('click', () => {
+  const code = $('#lookup-code').value.trim().toLowerCase();
+  if (code) loadByCode(code);
+});
+
+async function loadByCode(code) {
+  if (!code) return;
+  try {
+    const res = await fetch('/api/my?id=' + encodeURIComponent(code));
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Cod inexistent');
+    state.plan = data.plan;
+    state.code = code;
+    state.status = data.status;
+    state.orgNote = data.note || '';
+    state.checked = state.checked || {};
+    if (data.nume) state.profile = { ...(state.profile || {}), nume: data.nume };
+    save();
+    renderResult(data.plan, state.checked, { lookup: true, status: data.status, note: data.note });
+    toast(STATUS_LABEL[data.status] || 'Plan încărcat');
+  } catch (err) {
+    toast(err.message || 'Nu am găsit planul.');
+  }
+}
+
 // ————— Persistență —————
 function load() {
   try {
-    return JSON.parse(localStorage.getItem(STORE_KEY)) || { profile: null, plan: null, source: null, checked: {} };
+    return JSON.parse(localStorage.getItem(STORE_KEY)) || { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '' };
   } catch {
-    return { profile: null, plan: null, source: null, checked: {} };
+    return { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '' };
   }
 }
 function save() {

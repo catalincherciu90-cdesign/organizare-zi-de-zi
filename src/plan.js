@@ -85,7 +85,7 @@ function extractJson(text) {
   return text.slice(start, end + 1);
 }
 
-function normalizePlan(p) {
+export function normalizePlan(p) {
   const cats = ['meal', 'sport', 'work', 'free', 'routine'];
   return {
     summary: String(p.summary || '').slice(0, 400),
@@ -101,7 +101,7 @@ function normalizePlan(p) {
   };
 }
 
-function sanitizeProfile(p = {}) {
+export function sanitizeProfile(p = {}) {
   const s = (v, n = 60) => String(v ?? '').slice(0, n);
   return {
     nume: s(p.nume, 40),
