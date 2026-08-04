@@ -6,6 +6,7 @@ import { DurableObject } from 'cloudflare:workers';
 import * as store from './store.js';
 
 export class Store extends DurableObject {
+  // ————— Cereri abonat —————
   createRequest(input) {
     return store.createRequest(this.ctx.storage, input);
   }
@@ -18,6 +19,8 @@ export class Store extends DurableObject {
   listRequests(limit) {
     return store.listRequests(this.ctx.storage, limit);
   }
+
+  // ————— Autentificare organizator —————
   getAuth() {
     return store.getAuth(this.ctx.storage);
   }
@@ -26,6 +29,36 @@ export class Store extends DurableObject {
   }
   verifyPassword(password) {
     return store.verifyPassword(this.ctx.storage, password);
+  }
+
+  // ————— Conturi abonați —————
+  createAccount(email, password) {
+    return store.createAccount(this.ctx.storage, email, password);
+  }
+  getAccount(email) {
+    return store.getAccount(this.ctx.storage, email);
+  }
+  getAccountById(accId) {
+    return store.getAccountById(this.ctx.storage, accId);
+  }
+  verifyAccount(email, password) {
+    return store.verifyAccount(this.ctx.storage, email, password);
+  }
+
+  // ————— Sesiuni —————
+  createSession(accId) {
+    return store.createSession(this.ctx.storage, accId);
+  }
+  getSession(token) {
+    return store.getSession(this.ctx.storage, token);
+  }
+  deleteSession(token) {
+    return store.deleteSession(this.ctx.storage, token);
+  }
+
+  // ————— Istoric abonat —————
+  listByOwner(accId, limit) {
+    return store.listByOwner(this.ctx.storage, accId, limit);
   }
 }
 

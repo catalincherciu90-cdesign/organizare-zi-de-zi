@@ -4,7 +4,7 @@
 
 const STATUSES = ['nou', 'in_lucru', 'gata'];
 
-export async function createRequest(storage, { profile, plan }) {
+export async function createRequest(storage, { profile, plan, owner = null }) {
   const id = genId();
   const now = new Date().toISOString();
   const rec = {
@@ -14,6 +14,7 @@ export async function createRequest(storage, { profile, plan }) {
     status: 'nou',
     note: '',
     shoppingList: [],
+    owner: owner || null, // accId al abonatului autentificat, opțional
     createdAt: now,
     updatedAt: now,
   };
@@ -82,6 +83,83 @@ export async function verifyPassword(storage, password) {
   const auth = await getAuth(storage);
   if (!auth) return false;
   return (await sha256(auth.salt + ':' + password)) === auth.hash;
+}
+
+// ————— Conturi de abonați —————
+
+// Creare cont nou: acc:<email> → {id,email,salt,hash,createdAt} + index invers accid:<id> → email.
+// Aruncă Error('exists') dacă emailul e deja înregistrat.
+export async function createAccount(storage, email, password) {
+  const emailLower = String(email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLower)) {
+    throw new Error('Email invalid.');
+  }
+  const pw = String(password || '');
+  if (pw.length < 6) throw new Error('Parola trebuie să aibă minim 6 caractere.');
+
+  const existing = await storage.get('acc:' + emailLower);
+  if (existing) throw new Error('exists');
+
+  const id = genId();
+  const salt = randomHex(16);
+  const hash = await sha256(salt + ':' + pw);
+  const now = new Date().toISOString();
+  const acc = { id, email: emailLower, salt, hash, createdAt: now };
+  await storage.put('acc:' + emailLower, acc);
+  await storage.put('accid:' + id, emailLower); // index invers pentru căutare după id
+  return { id, email: emailLower };
+}
+
+// Citire cont după email (returnează obiectul complet inclusiv salt+hash, sau null).
+export async function getAccount(storage, email) {
+  const emailLower = String(email || '').trim().toLowerCase();
+  return (await storage.get('acc:' + emailLower)) || null;
+}
+
+// Citire cont după accId (folosind indexul invers — O(1)).
+export async function getAccountById(storage, accId) {
+  if (!accId) return null;
+  const email = await storage.get('accid:' + accId);
+  if (!email) return null;
+  return (await storage.get('acc:' + email)) || null;
+}
+
+// Verificare credențiale: returnează accId dacă parola e corectă, altfel null.
+export async function verifyAccount(storage, email, password) {
+  const acc = await getAccount(storage, email);
+  if (!acc) return null;
+  const hash = await sha256(acc.salt + ':' + String(password || ''));
+  return hash === acc.hash ? acc.id : null;
+}
+
+// ————— Sesiuni —————
+
+// Creare sesiune: scrie sess:<token> → accId, returnează token hex de 32 bytes.
+export async function createSession(storage, accId) {
+  const token = randomHex(32);
+  await storage.put('sess:' + token, accId);
+  return token;
+}
+
+// Citire sesiune: returnează accId sau null dacă token-ul nu există.
+export async function getSession(storage, token) {
+  if (!token) return null;
+  return (await storage.get('sess:' + token)) || null;
+}
+
+// Ștergere sesiune (logout).
+export async function deleteSession(storage, token) {
+  if (token) await storage.delete('sess:' + token);
+}
+
+// ————— Istoric abonat —————
+
+// Listare cereri ale unui cont, filtrate după owner===accId, descrescător după createdAt.
+export async function listByOwner(storage, accId, limit = 100) {
+  const map = await storage.list({ prefix: 'req:', limit: 500 });
+  const recs = [...map.values()].filter((r) => r.owner === accId);
+  recs.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  return recs.slice(0, limit);
 }
 
 // ————— utilitare —————

@@ -18,6 +18,13 @@ export default {
     if (path === '/api/submit') return only('POST', request, () => submit(request, env));
     if (path === '/api/my') return only('GET', request, () => myPlan(request, env, url));
 
+    // ————— API cont abonat —————
+    if (path === '/api/account/register') return only('POST', request, () => accRegister(request, env));
+    if (path === '/api/account/login') return only('POST', request, () => accLogin(request, env));
+    if (path === '/api/account/logout') return only('POST', request, () => accLogout(request, env));
+    if (path === '/api/account/me') return only('GET', request, () => accMe(request, env));
+    if (path === '/api/account/days') return only('GET', request, () => accDays(request, env));
+
     // ————— API organizator —————
     if (path === '/api/org/state') return only('GET', request, () => orgState(env));
     if (path === '/api/org/setup') return only('POST', request, () => orgSetup(request, env));
@@ -38,6 +45,14 @@ export default {
   },
 };
 
+// ————— Helper: rezolvă accId din header-ul x-acc-token —————
+// Dacă token-ul lipsește sau e invalid → null (nu blochează cererea).
+async function resolveToken(request, env) {
+  const token = request.headers.get('x-acc-token');
+  if (!token || !hasStore(env)) return null;
+  return storeStub(env).getSession(token);
+}
+
 // ————— Abonat —————
 
 async function submit(request, env) {
@@ -52,7 +67,10 @@ async function submit(request, env) {
   const plan = normalizePlan(body.plan || {});
   if (!plan.blocks.length) return json({ error: 'Planul e gol.' }, 400);
 
-  const rec = await storeStub(env).createRequest({ profile, plan });
+  // Dacă vine header x-acc-token valid, legăm cererea de cont (token invalid = ignorat, contul e opțional).
+  const owner = await resolveToken(request, env);
+
+  const rec = await storeStub(env).createRequest({ profile, plan, owner });
   return json({ id: rec.id, status: rec.status });
 }
 
@@ -62,6 +80,63 @@ async function myPlan(request, env, url) {
   const rec = await storeStub(env).getRequest(id);
   if (!rec) return json({ error: 'Cod inexistent.' }, 404);
   return json({ status: rec.status, plan: rec.plan, note: rec.note, nume: rec.profile?.nume || '', updatedAt: rec.updatedAt, shoppingList: rec.shoppingList || [] });
+}
+
+// ————— Cont abonat —————
+
+async function accRegister(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Body invalid.' }, 400); }
+  try {
+    const { id, email } = await storeStub(env).createAccount(
+      String(body.email || ''),
+      String(body.password || ''),
+    );
+    const token = await storeStub(env).createSession(id);
+    return json({ token, email });
+  } catch (err) {
+    if (err.message === 'exists') return json({ error: 'Adresa de email este deja înregistrată.' }, 409);
+    return json({ error: err.message || 'Eroare la înregistrare.' }, 400);
+  }
+}
+
+async function accLogin(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Body invalid.' }, 400); }
+  const accId = await storeStub(env).verifyAccount(
+    String(body.email || ''),
+    String(body.password || ''),
+  );
+  if (!accId) return json({ error: 'Email sau parolă incorectă.' }, 401);
+  const token = await storeStub(env).createSession(accId);
+  const acc = await storeStub(env).getAccount(String(body.email || ''));
+  return json({ token, email: acc?.email || String(body.email || '').trim().toLowerCase() });
+}
+
+async function accLogout(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  const token = request.headers.get('x-acc-token');
+  if (token) await storeStub(env).deleteSession(token);
+  return json({ ok: true });
+}
+
+async function accMe(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  const accId = await resolveToken(request, env);
+  if (!accId) return json({ error: 'Token invalid.' }, 401);
+  const acc = await storeStub(env).getAccountById(accId);
+  if (!acc) return json({ error: 'Cont negăsit.' }, 401);
+  return json({ email: acc.email });
+}
+
+async function accDays(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  const accId = await resolveToken(request, env);
+  if (!accId) return json({ error: 'Token invalid.' }, 401);
+  const recs = await storeStub(env).listByOwner(accId);
+  return json({ days: recs.map(toSummary) });
 }
 
 // ————— Organizator —————

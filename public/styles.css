@@ -287,3 +287,26 @@ section { padding: 68px 0; }
 .shopping-item:first-child { border-top: none; }
 .shopping-item label { cursor: pointer; font-size: 0.95rem; color: var(--text); flex: 1; }
 .shopping-item label.done-label { text-decoration: line-through; color: var(--muted); }
+
+/* ————— Bara și formularul de cont abonat ————— */
+.acc-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  min-height: 36px;
+}
+.acc-guest { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.acc-user { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.acc-hint { font-size: 0.82rem; color: var(--muted); }
+.acc-email-display { font-size: 0.88rem; color: var(--accent-2); font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.acc-auth-panel { max-width: 460px; margin-bottom: 22px; }
+.acc-auth-panel h3 { margin: 0 0 18px; font-size: 1.1rem; }
+.acc-form-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+
+/* ————— Istoricul abonatului ————— */
+#history-view { margin-top: 4px; }
+#history-list { margin-bottom: 4px; }

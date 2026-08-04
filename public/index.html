@@ -140,6 +140,41 @@
           <button class="btn btn-ghost" data-goto="landing">← Înapoi</button>
         </div>
 
+        <!-- Bara de cont (vizibilă în toate subvederile) -->
+        <div class="acc-bar" id="acc-bar">
+          <div id="acc-guest" class="acc-guest">
+            <span class="acc-hint">Salvează planurile în contul tău</span>
+            <button class="btn btn-ghost btn-sm" id="acc-login-btn">Autentifică-te</button>
+            <button class="btn btn-primary btn-sm" id="acc-register-btn">Creează cont</button>
+          </div>
+          <div id="acc-user" class="acc-user hidden">
+            <span id="acc-email-display" class="acc-email-display"></span>
+            <button class="btn btn-ghost btn-sm" id="acc-history-btn">Istoricul meu</button>
+            <button class="btn btn-ghost btn-sm" id="acc-logout-btn">Ieși</button>
+          </div>
+        </div>
+
+        <!-- Formular autentificare / înregistrare (ascuns implicit) -->
+        <div class="panel acc-auth-panel hidden" id="acc-auth-panel">
+          <h3 id="acc-form-title">Intră în cont</h3>
+          <div class="form-grid" style="grid-template-columns:1fr">
+            <div class="field">
+              <label for="acc-email">Email</label>
+              <input id="acc-email" type="email" placeholder="adresa@email.com" autocomplete="email" />
+            </div>
+            <div class="field">
+              <label for="acc-pass">Parolă</label>
+              <input id="acc-pass" type="password" placeholder="minim 6 caractere" autocomplete="current-password" />
+            </div>
+          </div>
+          <div id="acc-form-error" class="form-error hidden"></div>
+          <div class="acc-form-actions">
+            <button class="btn btn-primary" id="acc-form-submit">Intră în cont</button>
+            <button class="btn btn-ghost btn-sm" id="acc-form-toggle">Nu am cont — mă înregistrez</button>
+            <button class="btn btn-ghost btn-sm" id="acc-form-cancel">Anulează</button>
+          </div>
+        </div>
+
         <!-- Onboarding form -->
         <div id="form-view" class="panel">
           <form id="profile-form" class="form-grid">
@@ -266,6 +301,16 @@
             <button class="btn btn-ghost" id="edit-btn">✎ Modifică profilul</button>
           </div>
         </div>
+
+        <!-- Istoricul meu -->
+        <div id="history-view" class="hidden">
+          <div id="history-list" class="req-list"></div>
+          <p id="history-empty" class="empty hidden">Nu ai niciun plan salvat încă.</p>
+          <div style="margin-top:20px">
+            <button class="btn btn-ghost" id="history-back-btn">← Înapoi la planner</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </main>

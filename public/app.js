@@ -34,6 +34,7 @@ document.addEventListener('click', (e) => {
   const target = trigger.dataset.goto;
   if (target === 'app') {
     show('app');
+    closeAccForm(); // închide formularul de auth dacă era deschis
     // dacă avem deja un plan salvat, îl arătăm direct
     if (state.plan) renderResult(state.plan, state.checked);
     else showAppStep('form');
@@ -46,12 +47,16 @@ function showAppStep(step) {
   $('#form-view').classList.toggle('hidden', step !== 'form');
   $('#loading-view').classList.toggle('hidden', step !== 'loading');
   $('#result-view').classList.toggle('hidden', step !== 'result');
+  $('#history-view').classList.toggle('hidden', step !== 'history');
   if (step === 'form') {
     $('#app-title').textContent = 'Hai să-ți construim ziua';
     $('#app-sub').textContent = 'Completează câteva detalii — ne ocupăm noi de rest.';
   } else if (step === 'result') {
     $('#app-title').textContent = state.profile?.nume ? `Ziua ta, ${state.profile.nume}` : 'Planul tău de azi';
     $('#app-sub').textContent = 'Bifează pe măsură ce avansezi.';
+  } else if (step === 'history') {
+    $('#app-title').textContent = 'Istoricul meu';
+    $('#app-sub').textContent = 'Planurile trimise organizatorului.';
   }
 }
 
@@ -254,9 +259,12 @@ $('#submit-btn')?.addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Se trimite...';
   try {
+    // Dacă abonatul e autentificat, trimitem token-ul ca planul să intre în istoricul lui
+    const headers = { 'content-type': 'application/json' };
+    if (state.accToken) headers['x-acc-token'] = state.accToken;
     const res = await fetch('/api/submit', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers,
       body: JSON.stringify({ profile: state.profile, plan: state.plan }),
     });
     const data = await res.json();
@@ -375,10 +383,13 @@ function icsEscape(s) {
 
 // ————— Persistență —————
 function load() {
+  const defaults = { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '', accToken: null, accEmail: null };
   try {
-    return JSON.parse(localStorage.getItem(STORE_KEY)) || { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '' };
+    const stored = JSON.parse(localStorage.getItem(STORE_KEY));
+    // merge cu defaults — câmpurile noi (accToken, accEmail) apar chiar dacă lipsesc din localStorage vechi
+    return stored ? { ...defaults, ...stored } : defaults;
   } catch {
-    return { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '' };
+    return defaults;
   }
 }
 function save() {
@@ -400,3 +411,199 @@ function toast(msg) {
 
 // Restaurează profilul în form dacă există
 if (state.profile) fillForm(state.profile);
+
+// ————— Cont abonat —————
+
+const STATUS_COLOR = { nou: 'work', in_lucru: 'sport', gata: 'meal' };
+
+let accFormMode = 'login'; // 'login' | 'register'
+
+// Randează bara de cont (guest sau logat) în funcție de state.accToken/accEmail
+function renderAccBar() {
+  const guest = $('#acc-guest');
+  const user = $('#acc-user');
+  if (!guest || !user) return;
+  if (state.accToken && state.accEmail) {
+    guest.classList.add('hidden');
+    user.classList.remove('hidden');
+    const display = $('#acc-email-display');
+    if (display) display.textContent = state.accEmail;
+  } else {
+    guest.classList.remove('hidden');
+    user.classList.add('hidden');
+  }
+}
+
+// Deschide panoul de autentificare în modul cerut
+function openAccForm(mode) {
+  accFormMode = mode || 'login';
+  const isReg = accFormMode === 'register';
+  const title = $('#acc-form-title');
+  const submit = $('#acc-form-submit');
+  const toggle = $('#acc-form-toggle');
+  const pass = $('#acc-pass');
+  if (title) title.textContent = isReg ? 'Creează cont' : 'Intră în cont';
+  if (submit) submit.textContent = isReg ? 'Creează contul' : 'Intră în cont';
+  if (toggle) toggle.textContent = isReg ? 'Am deja cont — intru' : 'Nu am cont — mă înregistrez';
+  if (pass) pass.setAttribute('autocomplete', isReg ? 'new-password' : 'current-password');
+  const errEl = $('#acc-form-error');
+  if (errEl) errEl.classList.add('hidden');
+  const panel = $('#acc-auth-panel');
+  if (panel) panel.classList.remove('hidden');
+}
+
+// Ascunde panoul de autentificare
+function closeAccForm() {
+  const panel = $('#acc-auth-panel');
+  if (panel) panel.classList.add('hidden');
+}
+
+// Verifică token-ul cu serverul la inițializare; curăță dacă e expirat
+async function verifyAccToken() {
+  if (!state.accToken) return;
+  try {
+    const res = await fetch('/api/account/me', {
+      headers: { 'x-acc-token': state.accToken },
+    });
+    if (!res.ok) {
+      state.accToken = null;
+      state.accEmail = null;
+      save();
+    }
+  } catch {
+    // eroare de rețea — păstrăm token-ul, va fi verificat la următoarea acțiune
+  }
+}
+
+// Formatare dată pentru lista de istoric
+function fmtDate(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
+
+// Încarcă și randează istoricul abonatului
+async function loadHistory() {
+  const list = $('#history-list');
+  const empty = $('#history-empty');
+  if (!list || !empty) return;
+  list.innerHTML = '<p style="color:var(--muted);padding:20px 0">Se încarcă...</p>';
+  empty.classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/account/days', {
+      headers: { 'x-acc-token': state.accToken || '' },
+    });
+    list.innerHTML = '';
+    if (!res.ok) {
+      empty.textContent = 'Nu am putut încărca istoricul.';
+      empty.classList.remove('hidden');
+      return;
+    }
+    const { days } = await res.json();
+    if (!days.length) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    days.forEach((day) => {
+      const color = STATUS_COLOR[day.status] || 'work';
+      const card = document.createElement('button');
+      card.className = 'req-card';
+      card.innerHTML = `
+        <div class="req-main">
+          <b>${escapeHtml(day.nume || '—')}</b>
+          <span class="req-obj">${escapeHtml(day.obiectiv || '')}</span>
+        </div>
+        <div class="req-meta">
+          <span class="status-pill" style="--c:var(--${color})">${escapeHtml(STATUS_LABEL[day.status] || day.status)}</span>
+          <span class="req-date">${fmtDate(day.createdAt)}</span>
+        </div>`;
+      // Click → încarcă planul zilei respective (id-ul zilei = codul de acces)
+      card.addEventListener('click', () => loadByCode(day.id));
+      list.appendChild(card);
+    });
+  } catch {
+    list.innerHTML = '';
+    empty.textContent = 'Eroare la încărcare. Încearcă din nou.';
+    empty.classList.remove('hidden');
+  }
+}
+
+// ————— Event listeners cont —————
+
+$('#acc-login-btn')?.addEventListener('click', () => openAccForm('login'));
+$('#acc-register-btn')?.addEventListener('click', () => openAccForm('register'));
+$('#acc-form-cancel')?.addEventListener('click', closeAccForm);
+$('#acc-form-toggle')?.addEventListener('click', () => {
+  openAccForm(accFormMode === 'login' ? 'register' : 'login');
+});
+
+$('#acc-form-submit')?.addEventListener('click', async () => {
+  const email = ($('#acc-email')?.value || '').trim();
+  const password = $('#acc-pass')?.value || '';
+  const errEl = $('#acc-form-error');
+
+  if (!email || !password) {
+    if (errEl) { errEl.textContent = 'Completează emailul și parola.'; errEl.classList.remove('hidden'); }
+    return;
+  }
+
+  const btn = $('#acc-form-submit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Se procesează...'; }
+
+  try {
+    const endpoint = accFormMode === 'register' ? '/api/account/register' : '/api/account/login';
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (errEl) { errEl.textContent = data.error || 'Eroare la autentificare.'; errEl.classList.remove('hidden'); }
+      return;
+    }
+    state.accToken = data.token;
+    state.accEmail = data.email;
+    save();
+    closeAccForm();
+    renderAccBar();
+    toast(accFormMode === 'register' ? 'Cont creat! Planurile tale se vor salva automat.' : 'Bine ai revenit!');
+  } catch {
+    if (errEl) { errEl.textContent = 'Eroare de rețea. Încearcă din nou.'; errEl.classList.remove('hidden'); }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = accFormMode === 'register' ? 'Creează contul' : 'Intră în cont';
+    }
+  }
+});
+
+$('#acc-logout-btn')?.addEventListener('click', async () => {
+  if (state.accToken) {
+    try {
+      await fetch('/api/account/logout', { method: 'POST', headers: { 'x-acc-token': state.accToken } });
+    } catch {}
+  }
+  state.accToken = null;
+  state.accEmail = null;
+  save();
+  renderAccBar();
+  toast('Ai ieșit din cont.');
+});
+
+$('#acc-history-btn')?.addEventListener('click', () => {
+  loadHistory();
+  showAppStep('history');
+});
+
+$('#history-back-btn')?.addEventListener('click', () => {
+  showAppStep(state.plan ? 'result' : 'form');
+  if (state.plan) renderResult(state.plan, state.checked);
+});
+
+// ————— Inițializare cont —————
+// Randare imediată (din localStorage), apoi verificare server în background
+renderAccBar();
+verifyAccToken().then(() => renderAccBar());
