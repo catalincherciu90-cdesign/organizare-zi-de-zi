@@ -1,0 +1,15 @@
+{
+  "name": "organizare-zi-de-zi",
+  "version": "1.0.0",
+  "description": "Asistent AI de abonament care organizează viața de zi cu zi a abonaților: mese, sport, timp liber, rutine — cu 4 agenți-coach (Nutri, Forța, Ritm, Calm).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public",
+    "secret": "wrangler pages secret put ANTHROPIC_API_KEY"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

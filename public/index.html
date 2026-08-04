@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Organizare Zi de Zi — 4 coach-i AI îți organizează ziua</title>
+  <meta name="description" content="Mese, mișcare, timp și relaxare — organizate zilnic de o echipă de 4 agenți AI. Spune-ne cine ești și primești un plan personalizat în fiecare zi." />
+  <link rel="preconnect" href="https://api.anthropic.com" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗓️</text></svg>" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="#top" class="logo"><span class="dot">🗓️</span> Organizare Zi de Zi</a>
+      <nav class="nav">
+        <a href="#cum-functioneaza" class="nav-link">Cum funcționează</a>
+        <a href="#agenti" class="nav-link">Agenții AI</a>
+        <a href="#preturi" class="nav-link">Prețuri</a>
+        <a href="#" class="btn btn-primary" data-goto="app">Începe gratuit</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ————— LANDING ————— -->
+  <main id="landing" data-view>
+    <a id="top"></a>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <span class="eyebrow">✨ Asistent AI pentru viața de zi cu zi</span>
+          <h1>Viața ta, organizată de <span class="grad">4 coach-i AI</span>, în fiecare zi.</h1>
+          <p class="lead">Mese, mișcare, timp și relaxare — toate ținute sub control de o echipă AI care te cunoaște și te ajută să faci progres real, fără efort de planificare.</p>
+          <div class="hero-cta">
+            <a href="#" class="btn btn-primary btn-lg" data-goto="app">Vreau planul meu de azi →</a>
+            <a href="#agenti" class="btn btn-ghost btn-lg">Alege-ți coach-ul</a>
+          </div>
+          <p class="hero-note">Fără card la înscriere · 7 zile gratuit</p>
+        </div>
+        <div class="preview" aria-hidden="true">
+          <div class="preview-head"><b>Ziua ta · azi</b><span>generat de agenți</span></div>
+          <div class="mini-block"><span class="time">07:30</span><span class="chip" style="background:var(--meal)"></span><span class="body"><b>Mic dejun echilibrat</b><small>Nutri · ouă, avocado, pâine integrală</small></span></div>
+          <div class="mini-block"><span class="time">08:15</span><span class="chip" style="background:var(--sport)"></span><span class="body"><b>Mișcare de dimineață</b><small>Forța · cardio ușor 30 min</small></span></div>
+          <div class="mini-block"><span class="time">10:00</span><span class="chip" style="background:var(--work)"></span><span class="body"><b>Bloc de focus</b><small>Ritm · sarcina cea mai importantă</small></span></div>
+          <div class="mini-block"><span class="time">21:30</span><span class="chip" style="background:var(--free)"></span><span class="body"><b>Rutină de somn</b><small>Calm · fără ecrane, lumină scăzută</small></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="cum-functioneaza">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker">Cum funcționează</span>
+          <h2>De la haos la o zi organizată, în 3 pași</h2>
+          <p>Fără chestionare interminabile și fără planuri rigide rupte din realitate.</p>
+        </div>
+        <div class="steps">
+          <div class="step"><div class="num">1</div><h3>Spune-ne cine ești</h3><p>Câteva întrebări rapide despre program, obiceiuri și obiective. Dura sub un minut.</p></div>
+          <div class="step"><div class="num">2</div><h3>Primești un plan zilnic</h3><p>Nutri, Forța, Ritm și Calm îți pregătesc recomandări adaptate la energia și timpul tău disponibil.</p></div>
+          <div class="step"><div class="num">3</div><h3>Urmezi, ajustezi, progresezi</h3><p>Bifezi ce ai făcut, agenții învață din feedback, iar planul de mâine e deja mai bun.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="agenti">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker">Echipa ta</span>
+          <h2>Cei 4 agenți care îți organizează ziua</h2>
+          <p>Fiecare are grijă de o parte din viața ta. Împreună, îți construiesc ziua completă.</p>
+        </div>
+        <div class="agents">
+          <article class="agent-card" style="--a:var(--meal)">
+            <div class="head"><span class="ico">🥗</span><div><h3>Nutri</h3><span class="tag">Nutriție &amp; mese</span></div></div>
+            <p>Coach-ul tău de nutriție care transformă „ce mănânc azi?" într-o întrebare rezolvată în 10 secunde.</p>
+            <ul><li>Îți propune meniuri zilnice pe baza preferințelor și restricțiilor</li><li>Îți generează liste de cumpărături automate</li><li>Te ține pe drum cu sugestii rapide, nu diete rigide</li></ul>
+          </article>
+          <article class="agent-card" style="--a:var(--sport)">
+            <div class="head"><span class="ico">💪</span><div><h3>Forța</h3><span class="tag">Sport &amp; mișcare</span></div></div>
+            <p>Coach-ul tău de mișcare care se adaptează la energia ta de azi, nu la un plan fix rupt din realitate.</p>
+            <ul><li>Îți construiește antrenamente potrivite nivelului și timpului</li><li>Îți urmărește progresul și ajustează intensitatea</li><li>Îți dă alternative rapide când n-ai chef de sală</li></ul>
+          </article>
+          <article class="agent-card" style="--a:var(--work)">
+            <div class="head"><span class="ico">⏰</span><div><h3>Ritm</h3><span class="tag">Organizare &amp; rutine</span></div></div>
+            <p>Coach-ul tău de organizare care pune ordine în ziua ta fără să te sufoce cu notificări.</p>
+            <ul><li>Îți structurează ziua în blocuri realiste de timp</li><li>Îți semnalează suprapunerile și te ajută să repriorizezi</li><li>Îți construiește rutine care rămân, nu doar liste de bifat</li></ul>
+          </article>
+          <article class="agent-card" style="--a:var(--free)">
+            <div class="head"><span class="ico">🌙</span><div><h3>Calm</h3><span class="tag">Timp liber &amp; wellbeing</span></div></div>
+            <p>Coach-ul tău de wellbeing care are grijă ca odihna și relaxarea să nu mai fie ultimele pe listă.</p>
+            <ul><li>Îți optimizează rutina de somn pe baza obiceiurilor tale</li><li>Îți propune momente de relaxare integrate firesc</li><li>Te ajută să deconectezi cu exerciții scurte anti-burnout</li></ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="preturi">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker">Abonament</span>
+          <h2>Alege planul potrivit pentru tine</h2>
+          <p>Începe gratuit. Fără card. Poți schimba oricând.</p>
+        </div>
+        <div class="plans">
+          <div class="plan">
+            <h3>🌱 Start</h3>
+            <div class="price">0 <small>RON/lună</small></div>
+            <div class="desc">7 zile trial complet, apoi gratuit cu limitări.</div>
+            <ul><li>Acces la 1 agent la alegere</li><li>Plan zilnic de bază, o dată/zi</li><li>Istoric limitat la 7 zile</li></ul>
+            <a href="#" class="btn btn-ghost btn-block" data-goto="app">Începe gratuit acum</a>
+          </div>
+          <div class="plan featured">
+            <span class="badge">Popular</span>
+            <h3>⚡ Echilibru</h3>
+            <div class="price">39 <small>RON/lună</small></div>
+            <div class="desc">Toți cei 4 agenți, personalizare completă.</div>
+            <ul><li>Acces complet la Nutri, Forța, Ritm, Calm</li><li>Planuri zilnice actualizate în timp real</li><li>Istoric complet și tracking de progres</li><li>Liste de cumpărături + reminder-e inteligente</li></ul>
+            <a href="#" class="btn btn-primary btn-block" data-goto="app">Hai să-ți organizăm ziua</a>
+          </div>
+          <div class="plan">
+            <h3>👑 Premium</h3>
+            <div class="price">69 <small>RON/lună</small></div>
+            <div class="desc">Coaching adaptiv avansat și integrări.</div>
+            <ul><li>Tot din Echilibru + coaching adaptiv</li><li>Sincronizare calendar &amp; apps de fitness/somn</li><li>Rapoarte săptămânale per categorie</li><li>Suport prioritar &amp; acces anticipat</li></ul>
+            <a href="#" class="btn btn-ghost btn-block" data-goto="app">Încearcă 7 zile, pe gratis</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ————— APP (planner) ————— -->
+  <main id="app" data-view class="hidden">
+    <div class="app-wrap">
+      <div class="container">
+        <div class="app-head">
+          <div>
+            <h2 id="app-title">Hai să-ți construim ziua</h2>
+            <p id="app-sub">Completează câteva detalii — agenții fac restul.</p>
+          </div>
+          <button class="btn btn-ghost" data-goto="landing">← Înapoi</button>
+        </div>
+
+        <!-- Onboarding form -->
+        <div id="form-view" class="panel">
+          <form id="profile-form" class="form-grid">
+            <div class="field">
+              <label for="nume">Cum te cheamă?</label>
+              <input id="nume" name="nume" type="text" placeholder="Prenumele tău" autocomplete="given-name" />
+            </div>
+            <div class="field">
+              <label for="obiectiv">Care e obiectivul principal?</label>
+              <select id="obiectiv" name="obiectiv">
+                <option value="echilibru">Mai mult echilibru în zi</option>
+                <option value="slabit">Slăbit / alimentație mai bună</option>
+                <option value="masa">Masă musculară / fitness</option>
+                <option value="energie">Mai multă energie</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="trezire">La ce oră te trezești?</label>
+              <input id="trezire" name="trezire" type="time" value="07:00" />
+            </div>
+            <div class="field">
+              <label for="culcare">La ce oră te culci?</label>
+              <input id="culcare" name="culcare" type="time" value="23:00" />
+            </div>
+            <div class="field">
+              <label for="program">Programul de lucru</label>
+              <input id="program" name="program" type="text" placeholder="ex: 9-17, sau lucrez de acasă" />
+            </div>
+            <div class="field">
+              <label for="fitness">Nivel de fitness</label>
+              <select id="fitness" name="fitness">
+                <option value="incepator">Începător</option>
+                <option value="mediu" selected>Mediu</option>
+                <option value="avansat">Avansat</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="dieta">Preferințe / restricții alimentare</label>
+              <input id="dieta" name="dieta" type="text" placeholder="ex: vegetarian, fără lactoză, orice" />
+            </div>
+            <div class="field">
+              <label for="timpLiber">Ce-ți place să faci în timp liber?</label>
+              <input id="timpLiber" name="timpLiber" type="text" placeholder="ex: citit, plimbări, gaming" />
+            </div>
+            <div class="field full">
+              <label for="note">Altceva de știut? (opțional)</label>
+              <textarea id="note" name="note" placeholder="ex: am o ședință zilnică la 10, prefer sport seara..."></textarea>
+            </div>
+            <div class="field full">
+              <button type="submit" class="btn btn-primary btn-lg btn-block">🚀 Generează planul zilei</button>
+            </div>
+          </form>
+          <div class="legend">
+            <span><i style="background:var(--meal)"></i> Mese</span>
+            <span><i style="background:var(--sport)"></i> Sport</span>
+            <span><i style="background:var(--work)"></i> Muncă / focus</span>
+            <span><i style="background:var(--free)"></i> Timp liber</span>
+            <span><i style="background:var(--routine)"></i> Rutine</span>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading-view" class="panel hidden">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Agenții îți construiesc ziua...</p>
+            <p class="agent-thinking" id="thinking">🥗 Nutri pregătește mesele...</p>
+          </div>
+        </div>
+
+        <!-- Result -->
+        <div id="result-view" class="hidden">
+          <div class="plan-summary">
+            <span class="src" id="plan-src">✨ Generat de agenți</span>
+            <p id="plan-summary-text"></p>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-bar"><span id="progress-fill"></span></div>
+            <div class="progress-label" id="progress-label">0 din 0 bifate</div>
+          </div>
+          <div class="timeline" id="timeline"></div>
+          <div class="tips hidden" id="tips-box">
+            <h4>💡 Sfaturile agenților pentru azi</h4>
+            <ul id="tips-list"></ul>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:26px;flex-wrap:wrap">
+            <button class="btn btn-primary" id="regen-btn">↻ Regenerează planul</button>
+            <button class="btn btn-ghost" id="edit-btn">✎ Modifică profilul</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>🗓️ Organizare Zi de Zi — asistentul tău AI pentru viața de zi cu zi.</span>
+      <span>Construit de echipa AI · Nutri · Forța · Ritm · Calm</span>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

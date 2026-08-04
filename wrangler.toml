@@ -1,0 +1,11 @@
+name = "organizare-zi-de-zi"
+compatibility_date = "2024-11-01"
+pages_build_output_dir = "public"
+
+# Deploy:  npx wrangler pages deploy public
+# Dev:     npx wrangler pages dev public
+#
+# Setează cheia Claude API ca secret (opțional — fără ea aplicația rulează în mod demo):
+#   npx wrangler pages secret put ANTHROPIC_API_KEY
+# Model (opțional, default claude-sonnet-5):
+#   dashboard Cloudflare → Settings → Environment variables → ANTHROPIC_MODEL
