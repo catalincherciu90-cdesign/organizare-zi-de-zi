@@ -1,19 +1,12 @@
-// Stratul de stocare — cererile abonaților, persistate în Cloudflare KV (binding OZZ).
-// Fiecare cerere: profilul abonatului + planul zilei + status + o notă de la organizator.
-//
-// Fără binding-ul KV configurat, hasStore() întoarce false, iar Worker-ul răspunde
-// cu un mesaj clar de setup în loc să pice.
+// Logică de stocare (pură) — operează pe un obiect `storage` cu API get/put/list,
+// compatibil cu Durable Object storage (this.ctx.storage) și cu un mock în teste.
+// Nu importă nimic din runtime-ul Cloudflare, ca să fie ușor de testat.
 
-export function hasStore(env) {
-  return !!(env && env.OZZ);
-}
-
-const KEY = (id) => `req:${id}`;
 const STATUSES = ['nou', 'in_lucru', 'gata'];
 
-export async function createRequest(env, { profile, plan }) {
+export async function createRequest(storage, { profile, plan }) {
   const id = genId();
-  const now = nowISO();
+  const now = new Date().toISOString();
   const rec = {
     id,
     profile: profile || {},
@@ -23,18 +16,17 @@ export async function createRequest(env, { profile, plan }) {
     createdAt: now,
     updatedAt: now,
   };
-  await env.OZZ.put(KEY(id), JSON.stringify(rec));
+  await storage.put('req:' + id, rec);
   return rec;
 }
 
-export async function getRequest(env, id) {
+export async function getRequest(storage, id) {
   if (!id) return null;
-  const raw = await env.OZZ.get(KEY(id));
-  return raw ? JSON.parse(raw) : null;
+  return (await storage.get('req:' + id)) || null;
 }
 
-export async function updateRequest(env, id, patch = {}) {
-  const rec = await getRequest(env, id);
+export async function updateRequest(storage, id, patch = {}) {
+  const rec = await getRequest(storage, id);
   if (!rec) return null;
   const next = {
     ...rec,
@@ -44,19 +36,15 @@ export async function updateRequest(env, id, patch = {}) {
     id: rec.id,
     profile: rec.profile,
     createdAt: rec.createdAt,
-    updatedAt: nowISO(),
+    updatedAt: new Date().toISOString(),
   };
-  await env.OZZ.put(KEY(id), JSON.stringify(next));
+  await storage.put('req:' + id, next);
   return next;
 }
 
-export async function listRequests(env, limit = 200) {
-  const list = await env.OZZ.list({ prefix: 'req:', limit });
-  const recs = [];
-  for (const k of list.keys) {
-    const raw = await env.OZZ.get(k.name);
-    if (raw) recs.push(JSON.parse(raw));
-  }
+export async function listRequests(storage, limit = 500) {
+  const map = await storage.list({ prefix: 'req:', limit });
+  const recs = [...map.values()];
   recs.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
   return recs;
 }
@@ -74,6 +62,28 @@ export function toSummary(rec) {
   };
 }
 
+// ————— Parola organizatorului (setată la prima intrare) —————
+
+export async function getAuth(storage) {
+  return (await storage.get('auth')) || null;
+}
+
+export async function setPassword(storage, password) {
+  const salt = randomHex(16);
+  const hash = await sha256(salt + ':' + password);
+  const auth = { salt, hash, setAt: new Date().toISOString() };
+  await storage.put('auth', auth);
+  return auth;
+}
+
+export async function verifyPassword(storage, password) {
+  const auth = await getAuth(storage);
+  if (!auth) return false;
+  return (await sha256(auth.salt + ':' + password)) === auth.hash;
+}
+
+// ————— utilitare —————
+
 function genId() {
   const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789'; // fără caractere ambigue
   const bytes = crypto.getRandomValues(new Uint8Array(8));
@@ -82,6 +92,12 @@ function genId() {
   return s;
 }
 
-function nowISO() {
-  return new Date().toISOString();
+function randomHex(n) {
+  const b = crypto.getRandomValues(new Uint8Array(n));
+  return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }

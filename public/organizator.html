@@ -22,13 +22,13 @@
   <main class="app-wrap">
     <div class="container">
 
-      <!-- Login -->
+      <!-- Login / prima configurare -->
       <div id="gate" class="panel" style="max-width:440px;margin:40px auto">
-        <h2 style="margin-top:0">Acces organizator</h2>
-        <p style="color:var(--muted)">Introdu tokenul de organizator ca să vezi cererile abonaților.</p>
+        <h2 style="margin-top:0" id="gate-title">Acces organizator</h2>
+        <p style="color:var(--muted)" id="gate-sub">Introdu parola de organizator ca să vezi cererile abonaților.</p>
         <div class="field">
-          <label for="token">Token organizator</label>
-          <input id="token" type="password" placeholder="ORGANIZER_TOKEN" />
+          <label for="token" id="token-label">Parola organizator</label>
+          <input id="token" type="password" placeholder="parola ta" autocomplete="current-password" />
         </div>
         <button class="btn btn-primary btn-block" id="login-btn" style="margin-top:14px">Intră</button>
         <p id="gate-msg" class="form-error hidden"></p>

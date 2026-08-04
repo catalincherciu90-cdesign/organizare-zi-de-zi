@@ -26,6 +26,7 @@ let token = sessionStorage.getItem(TOKEN_KEY) || '';
 let requests = [];
 let current = null; // cererea deschisă în editor
 let filter = 'all';
+let configured = true; // dacă există deja o parolă/token setat
 
 // ————— Auth —————
 function api(path, opts = {}) {
@@ -43,9 +44,55 @@ $('#logout-btn').addEventListener('click', () => {
   showGate();
 });
 
+async function checkState() {
+  try {
+    const res = await fetch('/api/org/state');
+    const data = await res.json();
+    configured = !!data.configured;
+  } catch {
+    configured = true;
+  }
+  applyGateMode();
+}
+
+function applyGateMode() {
+  if (configured) {
+    $('#gate-title').textContent = 'Acces organizator';
+    $('#gate-sub').textContent = 'Introdu parola de organizator ca să vezi cererile abonaților.';
+    $('#token-label').textContent = 'Parola organizator';
+    $('#token').setAttribute('autocomplete', 'current-password');
+    $('#login-btn').textContent = 'Intră';
+  } else {
+    $('#gate-title').textContent = 'Prima configurare';
+    $('#gate-sub').textContent = 'Alege o parolă de organizator (minim 6 caractere). O vei folosi de fiecare dată la intrare.';
+    $('#token-label').textContent = 'Setează o parolă';
+    $('#token').setAttribute('autocomplete', 'new-password');
+    $('#login-btn').textContent = 'Setează parola și intră';
+  }
+}
+
 async function login() {
-  token = $('#token').value.trim();
-  if (!token) return;
+  const pw = $('#token').value.trim();
+  if (!pw) return;
+
+  // Prima configurare → setează parola întâi
+  if (!configured) {
+    if (pw.length < 6) return gateError('Parola trebuie să aibă minim 6 caractere.');
+    try {
+      const res = await fetch('/api/org/setup', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+      });
+      const data = await res.json();
+      if (!res.ok) return gateError(data.error || 'Nu am putut seta parola.');
+      configured = true;
+    } catch {
+      return gateError('Eroare de rețea.');
+    }
+  }
+
+  token = pw;
   const ok = await loadList();
   if (ok) {
     sessionStorage.setItem(TOKEN_KEY, token);
@@ -257,8 +304,11 @@ function toast(msg) {
 }
 
 // ————— Init —————
-if (token) {
-  loadList().then((ok) => (ok ? showList() : showGate()));
-} else {
+(async () => {
+  await checkState();
+  if (token && configured) {
+    const ok = await loadList();
+    if (ok) return showList();
+  }
   showGate();
-}
+})();

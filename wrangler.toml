@@ -3,29 +3,29 @@ main = "src/index.js"
 compatibility_date = "2024-11-01"
 
 # Site static (public/) servit de Worker prin binding-ul ASSETS.
-# Worker-ul (src/index.js) tratează /api/*; restul e servit din public/.
 [assets]
 directory = "./public"
 binding = "ASSETS"
 
-# ————— Stocare cereri abonați (Cloudflare KV) —————
-# Panoul organizatorului (/organizator) și trimiterea planurilor au nevoie de KV.
-# Fără binding-ul de mai jos, aplicația tot pornește (site + generare plan demo),
-# dar trimiterea/lista cererilor răspund cu un mesaj „KV neconfigurat".
-#
-# Ca să activezi:
-#   1. Creează namespace-ul:   npx wrangler kv namespace create OZZ
-#   2. Copiază id-ul returnat mai jos și decomentează:
-#
-# [[kv_namespaces]]
-# binding = "OZZ"
-# id = "PUNE_AICI_ID-UL_KV"
+# ————— Stocare (Durable Object, creat automat la deploy) —————
+# Nu necesită nicio configurare manuală: la `wrangler deploy`, Cloudflare creează
+# singur Durable Object-ul pe baza migrării de mai jos. Backend SQLite → eligibil pe
+# planul gratuit.
+[[durable_objects.bindings]]
+name = "STORE"
+class_name = "Store"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Store"]
 
 # ————— Deploy —————
-#   npx wrangler deploy
+#   npx wrangler deploy   (sau automat prin Workers Builds la push pe main)
 #
-# ————— Variabile necesare pentru panoul organizatorului —————
-#   Token de acces al organizatorului (obligatoriu pentru /organizator):
-#     npx wrangler secret put ORGANIZER_TOKEN
-#   (Opțional) generare plan printr-un model, în loc de mod demo:
-#     npx wrangler secret put ANTHROPIC_API_KEY
+# ————— Acces organizator —————
+# Implicit: organizatorul își setează parola la prima intrare pe /organizator.
+# Opțional, poți fixa în schimb un token ca secret:
+#   npx wrangler secret put ORGANIZER_TOKEN
+#
+# Opțional, generare plan printr-un model (altfel mod demo):
+#   npx wrangler secret put ANTHROPIC_API_KEY

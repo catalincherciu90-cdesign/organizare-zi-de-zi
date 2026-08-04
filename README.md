@@ -36,8 +36,9 @@ organizare-zi-de-zi/
 ├── src/
 │   ├── index.js            # Worker: rutare API + servire assets
 │   ├── plan.js             # pregătirea planului (cu fallback demo)
-│   └── store.js            # stocarea cererilor în Cloudflare KV
-├── wrangler.toml           # Cloudflare Worker + Static Assets
+│   ├── store.js            # logica de stocare (pură, testabilă)
+│   └── do.js               # Durable Object care persistă datele
+├── wrangler.toml           # Cloudflare Worker + Static Assets + Durable Object
 └── package.json
 ```
 
@@ -48,16 +49,7 @@ npm install
 npm run dev          # → http://localhost:8787
 ```
 
-Pentru panou și trimitere în local, adaugă un fișier `.dev.vars`:
-
-```
-ORGANIZER_TOKEN = "un-token-de-test"
-```
-
-și un namespace KV de preview (vezi mai jos). Fără KV, site-ul și generarea de plan merg,
-dar trimiterea/panoul răspund cu „KV neconfigurat".
-
-## Deploy pe Cloudflare (Workers)
+## Deploy pe Cloudflare — fără pași manuali ✨
 
 ```bash
 npm run deploy       # npx wrangler deploy
@@ -65,26 +57,18 @@ npm run deploy       # npx wrangler deploy
 
 Prin integrarea Git (Workers Builds), un push pe `main` declanșează deploy-ul automat.
 
-### Activarea panoului de organizator (o singură dată)
+**Nu trebuie să configurezi nimic în dashboard-ul Cloudflare.** Persistența folosește un
+**Durable Object** pe care Cloudflare îl creează singur la deploy (vezi `[[migrations]]` din
+`wrangler.toml`). Backend-ul SQLite e eligibil pe planul gratuit.
 
-Panoul și trimiterea planurilor au nevoie de **stocare KV** și de un **token de organizator**:
+### Panoul de organizator
 
-```bash
-# 1. Creează namespace-ul KV
-npx wrangler kv namespace create OZZ
-#    → copiază id-ul returnat în wrangler.toml (secțiunea [[kv_namespaces]], decomentează)
+Organizatorul accesează **`/organizator`** și, la **prima intrare, își setează o parolă**
+(minim 6 caractere) — fără niciun secret de configurat. Parola e stocată securizat (SHA-256 +
+salt) în Durable Object și e cerută la fiecare intrare ulterioară.
 
-# 2. Setează tokenul de acces al organizatorului
-npx wrangler secret put ORGANIZER_TOKEN
-
-# 3. Redeploy
-npm run deploy
-```
-
-Organizatorul accesează panoul la **`/organizator`** și se autentifică cu tokenul setat.
-
-> Fără acești doi pași, aplicația tot funcționează: site-ul public + generarea planului de
-> start (mod demo). Doar trimiterea și panoul se activează după setup.
+> Alternativ, poți fixa în locul parolei un token ca secret Cloudflare
+> (`npx wrangler secret put ORGANIZER_TOKEN`); dacă e setat, are prioritate față de parola din panou.
 
 ## API
 
@@ -93,11 +77,14 @@ Organizatorul accesează panoul la **`/organizator`** și se autentifică cu tok
 | POST | `/api/plan` | abonat | Generează planul de start din profil |
 | POST | `/api/submit` | abonat | Trimite planul + profilul → returnează un cod |
 | GET | `/api/my?id=COD` | abonat | Vede statusul + planul (posibil ajustat) |
-| GET | `/api/org/requests` | organizator | Lista cererilor (necesită `x-org-token`) |
+| GET | `/api/org/state` | public | Dacă accesul de organizator e configurat |
+| POST | `/api/org/setup` | organizator | Setează parola la prima intrare |
+| GET | `/api/org/requests` | organizator | Lista cererilor |
 | GET | `/api/org/request?id=ID` | organizator | O cerere completă |
 | PUT | `/api/org/request?id=ID` | organizator | Salvează plan / status / notă |
 
-Rutele de organizator cer header-ul `x-org-token: <ORGANIZER_TOKEN>`.
+Rutele de organizator cer header-ul `x-org-token: <parola>` (parola setată la prima intrare
+sau secretul `ORGANIZER_TOKEN`, dacă e configurat).
 `category` a unui bloc ∈ `meal | sport | work | free | routine`. Statusuri: `nou | in_lucru | gata`.
 
 ## Roadmap
