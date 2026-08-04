@@ -280,3 +280,10 @@ section { padding: 68px 0; }
 .block-edit input:focus, .block-edit select:focus { outline: none; border-color: var(--accent); }
 .be-del { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; cursor: pointer; padding: 9px 11px; font-size: 0.9rem; transition: all 0.15s; }
 .be-del:hover { border-color: var(--sport); color: var(--sport); }
+
+/* ————— Listă de cumpărături (abonat) ————— */
+.shopping-list { list-style: none; padding: 0; margin: 0; }
+.shopping-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border); }
+.shopping-item:first-child { border-top: none; }
+.shopping-item label { cursor: pointer; font-size: 0.95rem; color: var(--text); flex: 1; }
+.shopping-item label.done-label { text-decoration: line-through; color: var(--muted); }

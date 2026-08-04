@@ -13,6 +13,7 @@ export async function createRequest(storage, { profile, plan }) {
     plan: plan || { summary: '', blocks: [], tips: [] },
     status: 'nou',
     note: '',
+    shoppingList: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -33,6 +34,7 @@ export async function updateRequest(storage, id, patch = {}) {
     plan: patch.plan !== undefined ? patch.plan : rec.plan,
     status: STATUSES.includes(patch.status) ? patch.status : rec.status,
     note: patch.note !== undefined ? String(patch.note).slice(0, 500) : rec.note,
+    shoppingList: patch.shoppingList !== undefined ? sanitizeShoppingList(patch.shoppingList) : (rec.shoppingList || []),
     id: rec.id,
     profile: rec.profile,
     createdAt: rec.createdAt,
@@ -83,6 +85,15 @@ export async function verifyPassword(storage, password) {
 }
 
 // ————— utilitare —————
+
+// Validează lista de cumpărături: array de string-uri, max 80 iteme, fiecare max 80 caractere.
+function sanitizeShoppingList(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => String(item).trim().slice(0, 80))
+    .filter(Boolean)
+    .slice(0, 80);
+}
 
 function genId() {
   const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789'; // fără caractere ambigue

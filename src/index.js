@@ -61,7 +61,7 @@ async function myPlan(request, env, url) {
   const id = code(url);
   const rec = await storeStub(env).getRequest(id);
   if (!rec) return json({ error: 'Cod inexistent.' }, 404);
-  return json({ status: rec.status, plan: rec.plan, note: rec.note, nume: rec.profile?.nume || '', updatedAt: rec.updatedAt });
+  return json({ status: rec.status, plan: rec.plan, note: rec.note, nume: rec.profile?.nume || '', updatedAt: rec.updatedAt, shoppingList: rec.shoppingList || [] });
 }
 
 // ————— Organizator —————
@@ -134,6 +134,7 @@ async function orgUpdate(request, env, url) {
   if (body.plan !== undefined) patch.plan = normalizePlan(body.plan);
   if (body.status !== undefined) patch.status = body.status;
   if (body.note !== undefined) patch.note = body.note;
+  if (body.shoppingList !== undefined) patch.shoppingList = body.shoppingList;
   const rec = await storeStub(env).updateRequest(code(url), patch);
   if (!rec) return json({ error: 'Cerere inexistentă.' }, 404);
   return json({ request: rec });

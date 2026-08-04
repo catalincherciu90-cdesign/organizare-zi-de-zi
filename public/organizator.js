@@ -213,6 +213,7 @@ function fillEditor(rec) {
   $('#ed-note').value = rec.note || '';
   $('#ed-summary').value = rec.plan?.summary || '';
   $('#ed-tips').value = (rec.plan?.tips || []).join('\n');
+  $('#ed-shopping').value = (rec.shoppingList || []).join('\n');
 
   const wrap = $('#ed-blocks');
   wrap.innerHTML = '';
@@ -255,7 +256,8 @@ $('#save-btn').addEventListener('click', async () => {
     blocks,
     tips: $('#ed-tips').value.split('\n').map((t) => t.trim()).filter(Boolean),
   };
-  const payload = { plan, status: $('#ed-status').value, note: $('#ed-note').value.trim() };
+  const shoppingList = $('#ed-shopping').value.split('\n').map((s) => s.trim()).filter(Boolean);
+  const payload = { plan, status: $('#ed-status').value, note: $('#ed-note').value.trim(), shoppingList };
 
   const btn = $('#save-btn');
   btn.disabled = true;

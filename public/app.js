@@ -91,6 +91,7 @@ async function generate() {
     state.plan = plan;
     state.checked = {};
     state.code = null; // plan nou → încă netrimis
+    state.shopping = []; // plan nou → fără listă de cumpărături încă
     save();
     if (note) toast(note);
     renderResult(plan, state.checked);
@@ -164,12 +165,45 @@ function renderResult(plan, checked = {}, opts = {}) {
     tipsBox.classList.add('hidden');
   }
 
+  // Lista de cumpărături — apare doar dacă există produse
+  renderShopping(state.shopping || [], state.checked);
+
   updateProgress(plan);
+}
+
+// ————— Randare listă de cumpărături —————
+function renderShopping(list, checked) {
+  const box = $('#shopping-box');
+  const ul = $('#shopping-list');
+  ul.innerHTML = '';
+  if (!list || !list.length) {
+    box.classList.add('hidden');
+    return;
+  }
+  list.forEach((item, idx) => {
+    const key = 'shop-' + idx;
+    const isChecked = !!checked[key];
+    const li = document.createElement('li');
+    li.className = 'shopping-item';
+    li.innerHTML = `
+      <input type="checkbox" class="check" id="${key}" ${isChecked ? 'checked' : ''} aria-label="${escapeHtml(item)}" />
+      <label for="${key}" class="${isChecked ? 'done-label' : ''}">${escapeHtml(item)}</label>`;
+    const chk = li.querySelector('input');
+    const lbl = li.querySelector('label');
+    chk.addEventListener('change', () => {
+      state.checked[key] = chk.checked;
+      lbl.classList.toggle('done-label', chk.checked);
+      save();
+    });
+    ul.appendChild(li);
+  });
+  box.classList.remove('hidden');
 }
 
 function updateProgress(plan) {
   const total = (plan.blocks || []).length;
-  const done = Object.values(state.checked || {}).filter(Boolean).length;
+  // Numărăm doar blocurile planului zilnic (chei blk-*), nu bife din shopping
+  const done = Object.entries(state.checked || {}).filter(([k, v]) => k.startsWith('blk-') && v).length;
   const pct = total ? Math.round((done / total) * 100) : 0;
   $('#progress-fill').style.width = pct + '%';
   $('#progress-label').textContent =
@@ -267,6 +301,7 @@ async function loadByCode(code) {
     state.code = code;
     state.status = data.status;
     state.orgNote = data.note || '';
+    state.shopping = data.shoppingList || [];
     state.checked = state.checked || {};
     if (data.nume) state.profile = { ...(state.profile || {}), nume: data.nume };
     save();
