@@ -1,8 +1,7 @@
-// Cloudflare Pages Function — POST /api/plan
-// Primește profilul abonatului și întoarce un plan zilnic personalizat,
-// generat de agenții AI (Nutri, Forța, Ritm, Calm) prin Claude API.
+// Logica agenților AI — generarea planului zilnic.
+// Folosită de Worker pentru ruta POST /api/plan.
 //
-// Env vars (setate în Cloudflare Pages → Settings → Environment variables):
+// Env vars (Cloudflare → Worker → Settings → Variables):
 //   ANTHROPIC_API_KEY  — cheia Claude API (opțional; fără ea rulează în mod demo)
 //   ANTHROPIC_MODEL    — model id (default: claude-sonnet-5)
 
@@ -39,7 +38,7 @@ Răspunde DOAR cu un obiect JSON valid, fără markdown, cu structura:
 }
 Ordinează blocurile cronologic. Între 8 și 12 blocuri.`;
 
-export async function onRequestPost({ request, env }) {
+export async function handlePlan(request, env) {
   let profile;
   try {
     profile = await request.json();
@@ -57,7 +56,7 @@ export async function onRequestPost({ request, env }) {
   try {
     const plan = await generateWithClaude(cleaned, env);
     return json({ plan, source: 'ai' });
-  } catch (err) {
+  } catch {
     // Degradare grațioasă: dacă apelul AI eșuează, tot livrăm un plan util.
     return json({ plan: demoPlan(cleaned), source: 'demo', note: 'AI indisponibil momentan.' });
   }

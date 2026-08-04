@@ -19,8 +19,9 @@ pe care îl poate bifa punct cu punct.
 
 1. **Landing page** — prezintă serviciul, agenții și cele 3 planuri de abonament (Start / Echilibru / Premium).
 2. **Onboarding** — formular scurt cu profilul abonatului.
-3. **Generare plan** — frontend-ul apelează `POST /api/plan`, care compune un system prompt
-   pentru echipa de agenți și cheamă **Claude API** pentru un program zilnic în format JSON.
+3. **Generare plan** — frontend-ul apelează `POST /api/plan` (tratat de Worker), care compune
+   un system prompt pentru echipa de agenți și cheamă **Claude API** pentru un program zilnic
+   în format JSON.
 4. **Dashboard zilnic** — planul e afișat ca timeline colorat pe categorii, cu checklist și
    bară de progres. Progresul și profilul se salvează local (`localStorage`).
 
@@ -32,35 +33,41 @@ pe care îl poate bifa punct cu punct.
 
 ```
 organizare-zi-de-zi/
-├── public/              # frontend static (servit de Cloudflare Pages)
+├── public/              # frontend static (servit de Worker prin binding ASSETS)
 │   ├── index.html       # landing + aplicația (planner)
 │   ├── styles.css       # design system (dark theme)
 │   └── app.js           # navigare, apel API, checklist + progres
-├── functions/
-│   └── api/
-│       └── plan.js      # Pages Function → Claude API (cu fallback demo)
-├── wrangler.toml
+├── src/
+│   ├── index.js         # Worker: rutare (/api/plan) + servire assets statice
+│   └── plan.js          # logica agenților → Claude API (cu fallback demo)
+├── wrangler.toml        # Cloudflare Worker + Static Assets
 └── package.json
 ```
+
+> Aplicația e un **Cloudflare Worker cu Static Assets**: Worker-ul (`src/index.js`) servește
+> fișierele din `public/` și tratează ruta `POST /api/plan`.
 
 ## Rulare locală
 
 ```bash
 npm install
-npm run dev          # → http://localhost:8788
+npm run dev          # → http://localhost:8787
 ```
 
-## Deploy pe Cloudflare Pages
+## Deploy pe Cloudflare (Workers)
 
 ```bash
-npm run deploy       # npx wrangler pages deploy public
+npm run deploy       # npx wrangler deploy
 ```
+
+Prin integrarea Git (Workers Builds), un push pe `main` declanșează automat deploy-ul.
+Comanda de deploy folosită de build: `npx wrangler deploy`.
 
 Setează (opțional) cheia Claude API ca secret pentru planuri generate de AI:
 
 ```bash
-npx wrangler pages secret put ANTHROPIC_API_KEY
-# Model configurabil (default: claude-sonnet-5) via env var ANTHROPIC_MODEL
+npx wrangler secret put ANTHROPIC_API_KEY
+# Model configurabil (default: claude-sonnet-5) via variabila ANTHROPIC_MODEL
 ```
 
 ## API
