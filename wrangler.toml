@@ -1,0 +1,16 @@
+name = "organizare-zi-de-zi"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Site static (public/) servit de Worker prin binding-ul ASSETS.
+# Worker-ul (src/index.js) tratează /api/plan; restul e servit din public/.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Deploy:  npx wrangler deploy
+# Dev:     npx wrangler dev
+#
+# (Opțional) Cheia Claude API — fără ea aplicația rulează în mod demo:
+#   npx wrangler secret put ANTHROPIC_API_KEY
+# Model configurabil (default claude-sonnet-5) via variabila ANTHROPIC_MODEL.
