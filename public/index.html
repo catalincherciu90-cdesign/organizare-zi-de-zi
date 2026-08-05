@@ -313,6 +313,8 @@
           <div id="acc-user" class="acc-user hidden">
             <span id="acc-email-display" class="acc-email-display"></span>
             <button class="btn btn-ghost btn-sm" id="acc-history-btn">Istoricul meu</button>
+            <button class="btn btn-ghost btn-sm" id="acc-week-btn">📆 Săptămâna mea</button>
+            <button class="btn btn-ghost btn-sm" id="acc-templates-btn">🔁 Rutinele mele</button>
             <button class="btn btn-ghost btn-sm" id="acc-logout-btn">Ieși</button>
           </div>
         </div>
@@ -463,6 +465,7 @@
             <button class="btn btn-primary" id="regen-btn">↻ Pregătește alt plan</button>
             <button class="btn btn-ghost" id="ics-btn">📅 Adaugă în calendar</button>
             <button class="btn btn-ghost" id="edit-btn">✎ Modifică profilul</button>
+            <button class="btn btn-ghost hidden" id="save-template-btn">💾 Salvează ca rutină</button>
           </div>
         </div>
 
@@ -472,6 +475,28 @@
           <p id="history-empty" class="empty hidden">Nu ai niciun plan salvat încă.</p>
           <div style="margin-top:20px">
             <button class="btn btn-ghost" id="history-back-btn">← Înapoi la planner</button>
+          </div>
+        </div>
+
+        <!-- Rutinele mele -->
+        <div id="templates-view" class="hidden">
+          <div id="templates-list" class="req-list"></div>
+          <p id="templates-empty" class="empty hidden">Nu ai nicio rutină salvată.</p>
+          <div style="margin-top:20px">
+            <button class="btn btn-ghost" id="templates-back-btn">← Înapoi la planner</button>
+          </div>
+        </div>
+
+        <!-- Săptămâna mea -->
+        <div id="week-view" class="hidden">
+          <div class="week-nav">
+            <button class="btn btn-ghost btn-sm" id="week-prev-btn">← Săpt. anterioară</button>
+            <span id="week-label" class="week-label"></span>
+            <button class="btn btn-ghost btn-sm" id="week-next-btn">Săpt. următoare →</button>
+          </div>
+          <div class="week-grid" id="week-grid"></div>
+          <div style="margin-top:20px">
+            <button class="btn btn-ghost" id="week-back-btn">← Înapoi la planner</button>
           </div>
         </div>
 

@@ -60,6 +60,20 @@ export class Store extends DurableObject {
   listByOwner(accId, limit) {
     return store.listByOwner(this.ctx.storage, accId, limit);
   }
+
+  // ————— Șabloane —————
+  createTemplate(accId, input) {
+    return store.createTemplate(this.ctx.storage, accId, input);
+  }
+  listTemplates(accId) {
+    return store.listTemplates(this.ctx.storage, accId);
+  }
+  getTemplate(accId, id) {
+    return store.getTemplate(this.ctx.storage, accId, id);
+  }
+  deleteTemplate(accId, id) {
+    return store.deleteTemplate(this.ctx.storage, accId, id);
+  }
 }
 
 // Stub către singura instanță (toate cererile într-un singur DO).

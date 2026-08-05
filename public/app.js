@@ -48,6 +48,8 @@ function showAppStep(step) {
   $('#loading-view').classList.toggle('hidden', step !== 'loading');
   $('#result-view').classList.toggle('hidden', step !== 'result');
   $('#history-view').classList.toggle('hidden', step !== 'history');
+  $('#templates-view')?.classList.toggle('hidden', step !== 'templates');
+  $('#week-view')?.classList.toggle('hidden', step !== 'week');
   if (step === 'form') {
     $('#app-title').textContent = 'Hai să-ți construim ziua';
     $('#app-sub').textContent = 'Completează câteva detalii — ne ocupăm noi de rest.';
@@ -57,6 +59,12 @@ function showAppStep(step) {
   } else if (step === 'history') {
     $('#app-title').textContent = 'Istoricul meu';
     $('#app-sub').textContent = 'Planurile trimise organizatorului.';
+  } else if (step === 'templates') {
+    $('#app-title').textContent = 'Rutinele mele';
+    $('#app-sub').textContent = 'Planuri salvate pe care le poți refolosi oricând.';
+  } else if (step === 'week') {
+    $('#app-title').textContent = 'Săptămâna mea';
+    $('#app-sub').textContent = 'Privire de ansamblu asupra zilelor din această săptămână.';
   }
 }
 
@@ -124,6 +132,9 @@ function startThinking() {
 // opts.lookup = true → plan vizualizat după cod (venit de la organizator)
 function renderResult(plan, checked = {}, opts = {}) {
   showAppStep('result');
+  // Butonul de salvare ca rutină — vizibil doar dacă utilizatorul e logat
+  const saveTplBtn = $('#save-template-btn');
+  if (saveTplBtn) saveTplBtn.classList.toggle('hidden', !state.accToken);
 
   $('#plan-summary-text').textContent = plan.summary || '';
   $('#plan-src').textContent = opts.lookup ? '🗓️ Planul tău, de la organizator' : '🗓️ Planul tău de azi';
@@ -827,6 +838,224 @@ verifyAccToken().then(() => renderAccBar());
 if (state.code && state.status !== 'gata' && state.notifyOptIn) {
   startPolling();
 }
+
+// ————— Rutine (șabloane salvate) —————
+
+async function loadTemplates() {
+  const list = $('#templates-list');
+  const empty = $('#templates-empty');
+  if (!list || !empty) return;
+  list.innerHTML = '<p style="color:var(--muted);padding:20px 0">Se încarcă...</p>';
+  empty.classList.add('hidden');
+  try {
+    const res = await fetch('/api/account/templates', {
+      headers: { 'x-acc-token': state.accToken || '' },
+    });
+    list.innerHTML = '';
+    if (!res.ok) {
+      empty.textContent = 'Nu am putut încărca rutinele.';
+      empty.classList.remove('hidden');
+      return;
+    }
+    const { templates } = await res.json();
+    if (!templates.length) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    templates.forEach((tpl) => {
+      const card = document.createElement('div');
+      card.className = 'req-card';
+      card.style.cursor = 'default';
+      const blocksTxt = tpl.blocks + ' bloc' + (tpl.blocks !== 1 ? 'uri' : '');
+      card.innerHTML = `
+        <div class="req-main">
+          <b>${escapeHtml(tpl.name)}</b>
+          <span class="req-obj">${escapeHtml(blocksTxt)} · ${fmtDate(tpl.createdAt)}</span>
+        </div>
+        <div class="req-meta" style="gap:8px">
+          <button class="btn btn-sm btn-primary tpl-use" data-id="${escapeHtml(tpl.id)}">Folosește</button>
+          <button class="btn btn-sm btn-ghost tpl-del" data-id="${escapeHtml(tpl.id)}">Șterge</button>
+        </div>`;
+      card.querySelector('.tpl-use').addEventListener('click', () => useTemplate(tpl.id));
+      card.querySelector('.tpl-del').addEventListener('click', () => deleteTemplate(tpl.id));
+      list.appendChild(card);
+    });
+  } catch {
+    list.innerHTML = '';
+    empty.textContent = 'Eroare la încărcare. Încearcă din nou.';
+    empty.classList.remove('hidden');
+  }
+}
+
+async function useTemplate(id) {
+  try {
+    const res = await fetch('/api/account/template?id=' + encodeURIComponent(id), {
+      headers: { 'x-acc-token': state.accToken || '' },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Eroare');
+    const { template } = data;
+    state.plan = template.plan;
+    state.checked = {};
+    state.code = null;
+    state.shopping = [];
+    state.notifiedGata = false;
+    save();
+    renderResult(template.plan, {});
+    toast('Rutina a fost încărcată ca plan curent.');
+  } catch (err) {
+    toast(err.message || 'Nu am putut încărca rutina.');
+  }
+}
+
+async function deleteTemplate(id) {
+  try {
+    const res = await fetch('/api/account/template?id=' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: { 'x-acc-token': state.accToken || '' },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Eroare');
+    toast('Rutina a fost ștearsă.');
+    loadTemplates();
+  } catch (err) {
+    toast(err.message || 'Nu am putut șterge rutina.');
+  }
+}
+
+$('#acc-templates-btn')?.addEventListener('click', () => {
+  loadTemplates();
+  showAppStep('templates');
+});
+
+$('#templates-back-btn')?.addEventListener('click', () => {
+  showAppStep(state.plan ? 'result' : 'form');
+  if (state.plan) renderResult(state.plan, state.checked);
+});
+
+$('#save-template-btn')?.addEventListener('click', async () => {
+  if (!state.plan || !state.accToken) return;
+  const name = prompt('Numele rutinei (max. 60 caractere):');
+  if (!name || !name.trim()) return;
+  try {
+    const res = await fetch('/api/account/templates', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-acc-token': state.accToken },
+      body: JSON.stringify({ name: name.trim(), plan: state.plan }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Eroare');
+    toast('Rutina „' + data.name + '" a fost salvată.');
+  } catch (err) {
+    toast(err.message || 'Nu am putut salva rutina.');
+  }
+});
+
+// ————— Săptămâna mea —————
+
+const DAY_NAMES = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+
+let weekOffset = 0; // 0 = săptămâna curentă, -1 = anterioară, +1 = următoare
+
+function getMondayOf(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); // 0=Duminică, 1=Luni...
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  return d;
+}
+
+function getWeekDates(offset) {
+  const monday = getMondayOf(new Date());
+  monday.setDate(monday.getDate() + offset * 7);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+}
+
+function isoLocalDate(d) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+async function loadWeek() {
+  const grid = $('#week-grid');
+  const label = $('#week-label');
+  if (!grid || !label) return;
+
+  const dates = getWeekDates(weekOffset);
+  const fmtOpts = { day: '2-digit', month: 'short' };
+  const startFmt = dates[0].toLocaleDateString('ro-RO', fmtOpts);
+  const endFmt = dates[6].toLocaleDateString('ro-RO', { ...fmtOpts, year: 'numeric' });
+  label.textContent = startFmt + ' – ' + endFmt;
+
+  grid.innerHTML = '<p style="color:var(--muted);padding:20px 0;grid-column:1/-1;text-align:center">Se încarcă...</p>';
+
+  try {
+    const res = await fetch('/api/account/days', {
+      headers: { 'x-acc-token': state.accToken || '' },
+    });
+    if (!res.ok) {
+      grid.innerHTML = '<p style="color:var(--muted);padding:20px 0;grid-column:1/-1;text-align:center">Nu am putut încărca datele.</p>';
+      return;
+    }
+    const { days } = await res.json();
+
+    // indexăm prima zi după fiecare dată locală (YYYY-MM-DD)
+    const dayMap = {};
+    days.forEach((d) => {
+      if (!d.createdAt) return;
+      const dateStr = isoLocalDate(new Date(d.createdAt));
+      if (!dayMap[dateStr]) dayMap[dateStr] = d;
+    });
+
+    grid.innerHTML = '';
+    dates.forEach((date, i) => {
+      const dateStr = isoLocalDate(date);
+      const day = dayMap[dateStr] || null;
+      const color = day ? (STATUS_COLOR[day.status] || 'work') : null;
+      const cell = document.createElement('div');
+      cell.className = 'week-cell' + (day ? ' week-cell--has-day' : '');
+      cell.innerHTML = `
+        <div class="week-cell-head">
+          <span class="week-day-name">${DAY_NAMES[i]}</span>
+          <span class="week-day-date">${date.toLocaleDateString('ro-RO', { day: '2-digit', month: 'short' })}</span>
+        </div>
+        <div class="week-cell-body">
+          ${day
+            ? `<span class="status-pill" style="--c:var(--${color})">${escapeHtml(STATUS_LABEL[day.status] || day.status)}</span>`
+            : '<span class="week-cell-empty">—</span>'}
+        </div>`;
+      if (day) cell.addEventListener('click', () => loadByCode(day.id));
+      grid.appendChild(cell);
+    });
+  } catch {
+    grid.innerHTML = '<p style="color:var(--muted);padding:20px 0;grid-column:1/-1;text-align:center">Eroare la încărcare.</p>';
+  }
+}
+
+$('#acc-week-btn')?.addEventListener('click', () => {
+  weekOffset = 0;
+  loadWeek();
+  showAppStep('week');
+});
+
+$('#week-prev-btn')?.addEventListener('click', () => {
+  weekOffset--;
+  loadWeek();
+});
+
+$('#week-next-btn')?.addEventListener('click', () => {
+  weekOffset++;
+  loadWeek();
+});
+
+$('#week-back-btn')?.addEventListener('click', () => {
+  showAppStep(state.plan ? 'result' : 'form');
+  if (state.plan) renderResult(state.plan, state.checked);
+});
 
 // ————— PWA: Service Worker —————
 if ('serviceWorker' in navigator) {

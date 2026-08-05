@@ -386,3 +386,56 @@ section { padding: 68px 0; }
 .cta-banner-inner p { color: rgba(255, 255, 255, 0.88); margin: 0 0 26px; font-size: 1.05rem; }
 .cta-banner-inner .btn-primary { background: #fff; color: color-mix(in srgb, var(--accent) 70%, black); }
 .cta-banner-inner .btn-primary:hover { filter: none; background: var(--bg); }
+
+/* ————— Rutinele mele ————— */
+#templates-view { margin-top: 4px; }
+#templates-list { margin-bottom: 4px; }
+.tpl-use, .tpl-del { white-space: nowrap; }
+
+/* ————— Săptămâna mea ————— */
+.week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.week-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--muted);
+  text-align: center;
+  flex: 1;
+  min-width: 160px;
+}
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 4px;
+}
+@media (max-width: 860px) { .week-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 520px) { .week-grid { grid-template-columns: repeat(2, 1fr); } }
+.week-cell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 14px 10px;
+  text-align: center;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.week-cell--has-day {
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.15s;
+}
+.week-cell--has-day:hover { transform: translateY(-2px); border-color: var(--accent); }
+.week-cell-head { display: flex; flex-direction: column; gap: 3px; }
+.week-day-name { font-weight: 700; font-size: 0.86rem; }
+.week-day-date { font-size: 0.76rem; color: var(--muted); }
+.week-cell-body { display: flex; align-items: center; justify-content: center; flex: 1; }
+.week-cell-empty { color: var(--muted); font-size: 1.1rem; }
+#week-view { margin-top: 4px; }

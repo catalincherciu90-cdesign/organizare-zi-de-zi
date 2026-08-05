@@ -162,6 +162,56 @@ export async function listByOwner(storage, accId, limit = 100) {
   return recs.slice(0, limit);
 }
 
+// ————— Șabloane (rutine salvate) ale abonaților —————
+
+// Salvează planul curent ca rutină reutilizabilă. Cheie: tpl:<accId>:<id>.
+// Aruncă eroare dacă numele e gol.
+export async function createTemplate(storage, accId, { name, plan }) {
+  const trimmedName = String(name || '').trim().slice(0, 60);
+  if (!trimmedName) throw new Error('Numele rutinei este obligatoriu.');
+  const id = genId();
+  const now = new Date().toISOString();
+  const safePlan = {
+    summary: String(plan?.summary || '').slice(0, 500),
+    blocks: Array.isArray(plan?.blocks) ? plan.blocks.slice(0, 50) : [],
+    tips: Array.isArray(plan?.tips) ? plan.tips.slice(0, 20) : [],
+  };
+  await storage.put('tpl:' + accId + ':' + id, { id, name: trimmedName, plan: safePlan, accId, createdAt: now });
+  return { id, name: trimmedName };
+}
+
+// Listare rutine ale unui cont, descrescător după createdAt.
+// Returnează [{id, name, blocks: nr, createdAt}] fără planul complet.
+export async function listTemplates(storage, accId) {
+  const map = await storage.list({ prefix: 'tpl:' + accId + ':' });
+  const tpls = [...map.values()];
+  tpls.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  return tpls.map((t) => ({
+    id: t.id,
+    name: t.name,
+    blocks: t.plan?.blocks?.length || 0,
+    createdAt: t.createdAt,
+  }));
+}
+
+// Citire rutină după id (cu izolare strictă pe accId) → {id, name, plan} sau null.
+export async function getTemplate(storage, accId, id) {
+  if (!id) return null;
+  const tpl = (await storage.get('tpl:' + accId + ':' + id)) || null;
+  if (!tpl) return null;
+  return { id: tpl.id, name: tpl.name, plan: tpl.plan };
+}
+
+// Ștergere rutină (cu izolare pe accId) → true dacă exista, false altfel.
+export async function deleteTemplate(storage, accId, id) {
+  if (!id) return false;
+  const key = 'tpl:' + accId + ':' + id;
+  const existing = await storage.get(key);
+  if (!existing) return false;
+  await storage.delete(key);
+  return true;
+}
+
 // ————— utilitare —————
 
 // Validează lista de cumpărături: array de string-uri, max 80 iteme, fiecare max 80 caractere.

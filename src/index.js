@@ -24,6 +24,16 @@ export default {
     if (path === '/api/account/logout') return only('POST', request, () => accLogout(request, env));
     if (path === '/api/account/me') return only('GET', request, () => accMe(request, env));
     if (path === '/api/account/days') return only('GET', request, () => accDays(request, env));
+    if (path === '/api/account/templates') {
+      if (request.method === 'GET') return accListTemplates(request, env);
+      if (request.method === 'POST') return accCreateTemplate(request, env);
+      return methodNotAllowed('GET, POST');
+    }
+    if (path === '/api/account/template') {
+      if (request.method === 'GET') return accGetTemplate(request, env, url);
+      if (request.method === 'DELETE') return accDeleteTemplate(request, env, url);
+      return methodNotAllowed('GET, DELETE');
+    }
 
     // ————— API organizator —————
     if (path === '/api/org/state') return only('GET', request, () => orgState(env));
@@ -137,6 +147,49 @@ async function accDays(request, env) {
   if (!accId) return json({ error: 'Token invalid.' }, 401);
   const recs = await storeStub(env).listByOwner(accId);
   return json({ days: recs.map(toSummary) });
+}
+
+// ————— Șabloane abonat —————
+
+async function accListTemplates(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  const accId = await resolveToken(request, env);
+  if (!accId) return json({ error: 'Token invalid.' }, 401);
+  const templates = await storeStub(env).listTemplates(accId);
+  return json({ templates });
+}
+
+async function accCreateTemplate(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  const accId = await resolveToken(request, env);
+  if (!accId) return json({ error: 'Token invalid.' }, 401);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Body invalid.' }, 400); }
+  const plan = normalizePlan(body.plan || {});
+  try {
+    const result = await storeStub(env).createTemplate(accId, { name: body.name, plan });
+    return json(result);
+  } catch (err) {
+    return json({ error: err.message || 'Eroare la salvare.' }, 400);
+  }
+}
+
+async function accGetTemplate(request, env, url) {
+  if (!hasStore(env)) return storeMissing();
+  const accId = await resolveToken(request, env);
+  if (!accId) return json({ error: 'Token invalid.' }, 401);
+  const template = await storeStub(env).getTemplate(accId, code(url));
+  if (!template) return json({ error: 'Rutină inexistentă.' }, 404);
+  return json({ template });
+}
+
+async function accDeleteTemplate(request, env, url) {
+  if (!hasStore(env)) return storeMissing();
+  const accId = await resolveToken(request, env);
+  if (!accId) return json({ error: 'Token invalid.' }, 401);
+  const ok = await storeStub(env).deleteTemplate(accId, code(url));
+  if (!ok) return json({ error: 'Rutină inexistentă.' }, 404);
+  return json({ ok: true });
 }
 
 // ————— Organizator —————
