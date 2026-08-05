@@ -602,6 +602,43 @@ function showNotificationBanner(code) {
   }
 }
 
+// ————— Web Push —————
+
+// Convertește un string base64url în Uint8Array (necesar pentru applicationServerKey).
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const result = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) result[i] = raw.charCodeAt(i);
+  return result;
+}
+
+// Încearcă abonarea Web Push după ce permisiunea de notificări e acordată.
+// Cade grațios dacă PushManager nu e disponibil sau oricare pas eșuează —
+// polling-ul existent rămâne activ ca fallback.
+async function subscribePush() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!state.code) return;
+    const reg = await navigator.serviceWorker.ready;
+    const keyRes = await fetch('/api/push/key');
+    if (!keyRes.ok) return;
+    const { key } = await keyRes.json();
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key),
+    });
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: state.code, subscription: sub.toJSON() }),
+    });
+  } catch (_) {
+    // Web Push indisponibil sau refuzat — polling rămâne activ ca fallback.
+  }
+}
+
 // ————— Persistență —————
 function load() {
   const defaults = { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '', shopping: [], recipes: [], accToken: null, accEmail: null, accPlan: 'start', accSubStatus: 'inactive', notifyOptIn: false, notifiedGata: false };
@@ -938,13 +975,14 @@ $('#notify-opt-in-btn')?.addEventListener('click', async () => {
     return;
   }
 
-  // Dacă permisiunea e deja acordată, activez polling-ul
+  // Dacă permisiunea e deja acordată, activez polling-ul și Web Push
   if (Notification.permission === 'granted') {
     state.notifyOptIn = true;
     save();
     const btn = $('#notify-opt-in-btn');
     if (btn) btn.classList.add('hidden');
     startPolling();
+    subscribePush(); // best-effort, nu blocăm pe eroare
     toast('Notificări activate! Te vom anunța când planul e gata.');
     return;
   }
@@ -964,6 +1002,7 @@ $('#notify-opt-in-btn')?.addEventListener('click', async () => {
       const btn = $('#notify-opt-in-btn');
       if (btn) btn.classList.add('hidden');
       startPolling();
+      subscribePush(); // best-effort, nu blocăm pe eroare
       toast('Notificări activate! Te vom anunța când planul e gata.');
     } else if (permission === 'denied') {
       toast('Notificările sunt dezactivate. Vei fi anunțat prin banner pe pagină când planul e gata.');

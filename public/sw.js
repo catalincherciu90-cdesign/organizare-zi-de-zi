@@ -2,7 +2,7 @@
 // Strategie: precache shell static, network-first pentru navigare,
 // stale-while-revalidate pentru assets, fără cache pentru /api/*
 
-const CACHE = 'ozz-v1';
+const CACHE = 'ozz-v2';
 const SHELL = [
   '/',
   '/index.html',
@@ -13,6 +13,23 @@ const SHELL = [
   '/manifest.webmanifest',
   '/icon.svg',
 ];
+
+// ————— PUSH —————
+self.addEventListener('push', (e) => {
+  e.waitUntil(
+    self.registration.showNotification('Planul tau e gata', {
+      body: 'Organizatorul ti-a pregatit planul de azi.',
+      icon: '/icon.svg',
+      badge: '/icon.svg',
+      data: { url: '/' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(clients.openWindow('/'));
+});
 
 // ————— INSTALL —————
 self.addEventListener('install', (e) => {

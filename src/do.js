@@ -102,6 +102,23 @@ export class Store extends DurableObject {
   orgStats() {
     return store.orgStats(this.ctx.storage);
   }
+
+  // ————— Web Push —————
+  getVapid() {
+    return store.getVapid(this.ctx.storage);
+  }
+  setVapid(vapid) {
+    return store.setVapid(this.ctx.storage, vapid);
+  }
+  savePushSub(code, subscription) {
+    return store.savePushSub(this.ctx.storage, code, subscription);
+  }
+  getPushSub(code) {
+    return store.getPushSub(this.ctx.storage, code);
+  }
+  deletePushSub(code) {
+    return store.deletePushSub(this.ctx.storage, code);
+  }
 }
 
 // Stub către singura instanță (toate cererile într-un singur DO).

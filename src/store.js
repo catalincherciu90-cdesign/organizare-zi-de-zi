@@ -313,6 +313,35 @@ export async function orgStats(storage) {
   return { requests: counts, accounts: accMap.size, last7days };
 }
 
+// ————— VAPID (Web Push) —————
+
+// Citește perechea VAPID (publicKey base64url + privateJwk) sau null.
+export async function getVapid(storage) {
+  return (await storage.get('vapid')) || null;
+}
+
+// Salvează perechea VAPID.
+export async function setVapid(storage, vapid) {
+  await storage.put('vapid', vapid);
+}
+
+// Salvează PushSubscription-ul sub cheia push:<code>.
+export async function savePushSub(storage, code, subscription) {
+  await storage.put('push:' + code, subscription);
+}
+
+// Citește PushSubscription-ul pentru un cod sau null.
+export async function getPushSub(storage, code) {
+  if (!code) return null;
+  return (await storage.get('push:' + code)) || null;
+}
+
+// Șterge PushSubscription-ul unui cod (abonament expirat / dezabonat).
+export async function deletePushSub(storage, code) {
+  if (!code) return;
+  await storage.delete('push:' + code);
+}
+
 // ————— utilitare —————
 
 // Validează lista de rețete: array de {name, ingredients, steps}, max 15 rețete.

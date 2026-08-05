@@ -41,6 +41,11 @@ export default {
       return methodNotAllowed('GET, DELETE');
     }
 
+    // ————— Web Push —————
+    if (path === '/api/push/key') return only('GET', request, () => pushKey(env));
+    if (path === '/api/push/subscribe') return only('POST', request, () => pushSubscribe(request, env));
+    if (path === '/api/push/unsubscribe') return only('POST', request, () => pushUnsubscribe(request, env));
+
     // ————— API organizator —————
     if (path === '/api/org/state') return only('GET', request, () => orgState(env));
     if (path === '/api/org/setup') return only('POST', request, () => orgSetup(request, env));
@@ -279,14 +284,21 @@ async function orgUpdate(request, env, url) {
   } catch {
     return json({ error: 'Body invalid.' }, 400);
   }
+  const reqId = code(url);
+  // Citim starea anterioară pentru a detecta tranziția la 'gata'.
+  const prev = await storeStub(env).getRequest(reqId);
   const patch = {};
   if (body.plan !== undefined) patch.plan = normalizePlan(body.plan);
   if (body.status !== undefined) patch.status = body.status;
   if (body.note !== undefined) patch.note = body.note;
   if (body.shoppingList !== undefined) patch.shoppingList = body.shoppingList;
   if (body.recipes !== undefined) patch.recipes = body.recipes;
-  const rec = await storeStub(env).updateRequest(code(url), patch);
+  const rec = await storeStub(env).updateRequest(reqId, patch);
   if (!rec) return json({ error: 'Cerere inexistentă.' }, 404);
+  // Best-effort: trimite push dacă statusul tocmai a devenit 'gata'.
+  if (rec.status === 'gata' && prev && prev.status !== 'gata') {
+    try { await sendPushGata(env, reqId); } catch (_) { /* ignorat — best-effort */ }
+  }
   return json({ request: rec });
 }
 
@@ -532,6 +544,117 @@ async function verifyStripeSignature(rawBody, sigHeader, secret) {
     if (diff === 0) return true;
   }
   return false;
+}
+
+// ————— Web Push —————
+
+// Convertește bytes la base64url (fără padding).
+function b64urlBytes(bytes) {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+// Encodează un string UTF-8 la base64url.
+function b64urlStr(str) {
+  return b64urlBytes(new TextEncoder().encode(str));
+}
+
+// Construiește un VAPID JWT ES256 (JOSE format: r||s raw, 64 bytes).
+async function buildVapidJwt(privateJwk, audience, subEmail) {
+  const headerB64 = b64urlStr(JSON.stringify({ alg: 'ES256', typ: 'JWT' }));
+  const payloadB64 = b64urlStr(JSON.stringify({
+    aud: audience,
+    exp: Math.floor(Date.now() / 1000) + 43200, // 12 ore
+    sub: subEmail,
+  }));
+  const toSign = headerB64 + '.' + payloadB64;
+  const key = await crypto.subtle.importKey(
+    'jwk',
+    privateJwk,
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: { name: 'SHA-256' } },
+    key,
+    new TextEncoder().encode(toSign),
+  );
+  return toSign + '.' + b64urlBytes(new Uint8Array(sig));
+}
+
+// Returnează perechea VAPID din DO; o generează și o salvează dacă nu există încă.
+async function getOrCreateVapid(env) {
+  const stub = storeStub(env);
+  const existing = await stub.getVapid();
+  if (existing) return existing;
+  const kp = await crypto.subtle.generateKey(
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    true,
+    ['sign', 'verify'],
+  );
+  const pubRaw = await crypto.subtle.exportKey('raw', kp.publicKey);
+  const privateJwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+  const vapid = { publicKey: b64urlBytes(new Uint8Array(pubRaw)), privateJwk };
+  await stub.setVapid(vapid);
+  return vapid;
+}
+
+// Trimite un bare push (fără payload) la subscription-ul salvat pentru un cod.
+// Best-effort: nu aruncă niciodată (apelantul prinde erorile proprii).
+async function sendPushGata(env, code) {
+  const stub = storeStub(env);
+  const sub = await stub.getPushSub(code);
+  if (!sub) return;
+  const vapid = await getOrCreateVapid(env);
+  const audience = new URL(sub.endpoint).origin;
+  const jwt = await buildVapidJwt(vapid.privateJwk, audience, 'mailto:organizare@example.com');
+  const resp = await fetch(sub.endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'vapid t=' + jwt + ', k=' + vapid.publicKey,
+      'TTL': '86400',
+      'Content-Length': '0',
+    },
+  });
+  // Subscription expirat sau invalid → curățăm din storage.
+  if (resp.status === 404 || resp.status === 410) {
+    await stub.deletePushSub(code);
+  }
+}
+
+// GET /api/push/key → { key: vapidPublicBase64url }
+async function pushKey(env) {
+  if (!hasStore(env)) return storeMissing();
+  const vapid = await getOrCreateVapid(env);
+  return json({ key: vapid.publicKey });
+}
+
+// POST /api/push/subscribe { code, subscription } → { ok: true }
+async function pushSubscribe(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Body invalid.' }, 400); }
+  const reqCode = String(body.code || '').trim().toLowerCase();
+  if (!reqCode) return json({ error: 'Cod lipsă.' }, 400);
+  const rec = await storeStub(env).getRequest(reqCode);
+  if (!rec) return json({ error: 'Cod inexistent.' }, 404);
+  const subscription = body.subscription;
+  if (!subscription || !subscription.endpoint) return json({ error: 'Subscription invalidă.' }, 400);
+  await storeStub(env).savePushSub(reqCode, subscription);
+  return json({ ok: true });
+}
+
+// POST /api/push/unsubscribe { code } → { ok: true }
+async function pushUnsubscribe(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Body invalid.' }, 400); }
+  const reqCode = String(body.code || '').trim().toLowerCase();
+  if (!reqCode) return json({ error: 'Cod lipsă.' }, 400);
+  await storeStub(env).deletePushSub(reqCode);
+  return json({ ok: true });
 }
 
 // ————— utilitare HTTP —————
