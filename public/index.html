@@ -401,13 +401,6 @@
             <span><i style="background:var(--free)"></i> Timp liber</span>
             <span><i style="background:var(--routine)"></i> Rutine</span>
           </div>
-          <div class="check-code">
-            <span>Ai deja un cod de la o cerere trimisă?</span>
-            <div class="check-code-row">
-              <input id="lookup-code" type="text" placeholder="ex: k7m2p9qx" maxlength="12" />
-              <button class="btn btn-ghost btn-sm" id="lookup-btn">Vezi planul meu</button>
-            </div>
-          </div>
         </div>
 
         <!-- Loading -->
@@ -454,14 +447,16 @@
             <button class="btn btn-primary" id="submit-btn">📨 Trimite organizatorului</button>
           </div>
 
-          <!-- Confirmare + cod -->
+          <!-- Confirmare + status -->
           <div class="code-box hidden" id="code-box">
             <div class="status-banner" id="status-banner"></div>
             <p id="code-note"></p>
-            <div class="code-row">
+            <div id="code-display" class="code-row">
               <span>Codul tău:</span>
               <code id="code-val"></code>
               <button class="btn btn-ghost btn-sm" id="copy-code">Copiază</button>
+            </div>
+            <div id="code-actions" class="code-row">
               <button class="btn btn-ghost btn-sm" id="refresh-code">↻ Verifică statusul</button>
               <button class="btn btn-ghost btn-sm hidden" id="notify-opt-in-btn">🔔 Anunță-mă când e gata</button>
             </div>

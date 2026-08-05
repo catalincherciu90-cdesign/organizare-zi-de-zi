@@ -48,7 +48,13 @@ document.addEventListener('click', (e) => {
 
   const target = trigger.dataset.goto;
   if (target === 'app') {
-    show('app');
+    // Gate: utilizator nelogat nu poate accesa planificatorul
+    if (!state.accToken) {
+      show('app');
+      openAccForm('register');
+      toast('Creează un cont sau autentifică-te ca să începi');
+      return;
+    }
     closeAccForm(); // închide formularul de auth dacă era deschis
     // dacă avem deja un plan salvat, îl arătăm direct
     if (state.plan) renderResult(state.plan, state.checked);
@@ -298,11 +304,16 @@ function showCodeBox(code, status, note) {
   codeBox.classList.remove('hidden');
   $('#status-banner').textContent = STATUS_LABEL[status] || STATUS_LABEL.nou;
   $('#status-banner').dataset.status = status || 'nou';
+
+  // Modifica textul — utilizatorul e logat, planul apare în "Istoricul meu"
   $('#code-note').textContent =
     status === 'gata'
       ? 'Organizatorul ți-a pregătit planul. Îl vezi mai sus.'
-      : 'Ți-am trimis cererea organizatorului. Revino cu codul de mai jos ca să vezi planul ajustat.';
-  $('#code-val').textContent = code || '—';
+      : 'Îți urmărim planul — vezi statusul aici sau în «Istoricul meu».';
+
+  // Ascunde code display (utilizatorul e logat, nu mai trebuie cod manual)
+  $('#code-display')?.classList.add('hidden');
+
   const orgNote = $('#org-note');
   if (note) {
     orgNote.textContent = '📝 Mesaj de la organizator: ' + note;
@@ -367,10 +378,6 @@ $('#copy-code')?.addEventListener('click', async () => {
 });
 
 $('#refresh-code')?.addEventListener('click', () => loadByCode(state.code));
-$('#lookup-btn')?.addEventListener('click', () => {
-  const code = $('#lookup-code').value.trim().toLowerCase();
-  if (code) loadByCode(code);
-});
 
 async function loadByCode(code) {
   if (!code) return;
@@ -867,6 +874,11 @@ $('#acc-form-submit')?.addEventListener('click', async () => {
     closeAccForm();
     await refreshAccInfo();
     renderAccBar();
+    // După autentificare reușită, dacă utilizatorul e în vederea #app, du-l la planificator
+    if ($('#app') && !$('#app').classList.contains('hidden')) {
+      if (state.plan) renderResult(state.plan, state.checked);
+      else showAppStep('form');
+    }
     toast(accFormMode === 'register' ? 'Cont creat! Planurile tale se vor salva automat.' : 'Bine ai revenit!');
   } catch {
     if (errEl) { errEl.textContent = 'Eroare de rețea. Încearcă din nou.'; errEl.classList.remove('hidden'); }

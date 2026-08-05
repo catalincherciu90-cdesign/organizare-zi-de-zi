@@ -99,8 +99,9 @@ async function submit(request, env) {
   const plan = normalizePlan(body.plan || {});
   if (!plan.blocks.length) return json({ error: 'Planul e gol.' }, 400);
 
-  // Dacă vine header x-acc-token valid, legăm cererea de cont (token invalid = ignorat, contul e opțional).
+  // Cererea trebuie să vină de la un utilizator autentificat
   const owner = await resolveToken(request, env);
+  if (!owner) return json({ error: 'Autentifică-te ca să trimiți planul.' }, 401);
 
   const rec = await storeStub(env).createRequest({ profile, plan, owner });
   return json({ id: rec.id, status: rec.status });
