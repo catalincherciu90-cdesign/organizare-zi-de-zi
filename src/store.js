@@ -212,6 +212,76 @@ export async function deleteTemplate(storage, accId, id) {
   return true;
 }
 
+// ————— Șabloane globale organizator (cheie otpl:<id>) —————
+
+// Salvează un plan ca șablon reutilizabil global (al organizatorului).
+// Aruncă eroare dacă numele e gol.
+export async function createOrgTemplate(storage, { name, plan }) {
+  const trimmedName = String(name || '').trim().slice(0, 60);
+  if (!trimmedName) throw new Error('Numele șablonului este obligatoriu.');
+  const id = genId();
+  const now = new Date().toISOString();
+  const safePlan = {
+    summary: String(plan?.summary || '').slice(0, 500),
+    blocks: Array.isArray(plan?.blocks) ? plan.blocks.slice(0, 50) : [],
+    tips: Array.isArray(plan?.tips) ? plan.tips.slice(0, 20) : [],
+  };
+  await storage.put('otpl:' + id, { id, name: trimmedName, plan: safePlan, createdAt: now });
+  return { id, name: trimmedName };
+}
+
+// Listare șabloane organizator, descrescător după createdAt.
+// Returnează [{id, name, blocks: nr, createdAt}] fără planul complet.
+export async function listOrgTemplates(storage) {
+  const map = await storage.list({ prefix: 'otpl:', limit: 500 });
+  const tpls = [...map.values()];
+  tpls.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  return tpls.map((t) => ({
+    id: t.id,
+    name: t.name,
+    blocks: t.plan?.blocks?.length || 0,
+    createdAt: t.createdAt,
+  }));
+}
+
+// Citire șablon organizator după id → {id, name, plan} sau null.
+export async function getOrgTemplate(storage, id) {
+  if (!id) return null;
+  const tpl = (await storage.get('otpl:' + id)) || null;
+  if (!tpl) return null;
+  return { id: tpl.id, name: tpl.name, plan: tpl.plan };
+}
+
+// Ștergere șablon organizator → true dacă exista, false altfel.
+export async function deleteOrgTemplate(storage, id) {
+  if (!id) return false;
+  const key = 'otpl:' + id;
+  const existing = await storage.get(key);
+  if (!existing) return false;
+  await storage.delete(key);
+  return true;
+}
+
+// Statistici panou organizator.
+// Returnează { requests:{total,nou,in_lucru,gata}, accounts: nr conturi, last7days: cereri recente }.
+export async function orgStats(storage) {
+  const [reqMap, accMap] = await Promise.all([
+    storage.list({ prefix: 'req:', limit: 2000 }),
+    storage.list({ prefix: 'acc:', limit: 2000 }),
+  ]);
+  const recs = [...reqMap.values()];
+  const counts = { total: recs.length, nou: 0, in_lucru: 0, gata: 0 };
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  let last7days = 0;
+  for (const rec of recs) {
+    if (rec.status === 'nou') counts.nou++;
+    else if (rec.status === 'in_lucru') counts.in_lucru++;
+    else if (rec.status === 'gata') counts.gata++;
+    if (rec.createdAt && new Date(rec.createdAt).getTime() >= sevenDaysAgo) last7days++;
+  }
+  return { requests: counts, accounts: accMap.size, last7days };
+}
+
 // ————— utilitare —————
 
 // Validează lista de cumpărături: array de string-uri, max 80 iteme, fiecare max 80 caractere.

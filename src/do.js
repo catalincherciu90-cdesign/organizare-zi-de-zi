@@ -74,6 +74,23 @@ export class Store extends DurableObject {
   deleteTemplate(accId, id) {
     return store.deleteTemplate(this.ctx.storage, accId, id);
   }
+
+  // ————— Șabloane organizator —————
+  createOrgTemplate(input) {
+    return store.createOrgTemplate(this.ctx.storage, input);
+  }
+  listOrgTemplates() {
+    return store.listOrgTemplates(this.ctx.storage);
+  }
+  getOrgTemplate(id) {
+    return store.getOrgTemplate(this.ctx.storage, id);
+  }
+  deleteOrgTemplate(id) {
+    return store.deleteOrgTemplate(this.ctx.storage, id);
+  }
+  orgStats() {
+    return store.orgStats(this.ctx.storage);
+  }
 }
 
 // Stub către singura instanță (toate cererile într-un singur DO).

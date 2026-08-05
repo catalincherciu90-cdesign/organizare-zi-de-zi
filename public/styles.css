@@ -439,3 +439,101 @@ section { padding: 68px 0; }
 .week-cell-body { display: flex; align-items: center; justify-content: center; flex: 1; }
 .week-cell-empty { color: var(--muted); font-size: 1.1rem; }
 #week-view { margin-top: 4px; }
+
+/* ————— Dashboard statistici organizator ————— */
+.org-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  text-align: center;
+}
+.stat-num {
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--accent-2);
+}
+.stat-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ————— Selector șabloane organizator ————— */
+.tpl-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(46, 42, 36, 0.50);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.tpl-picker {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: min(460px, 100%);
+  max-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow);
+}
+.tpl-picker-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.tpl-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  font-family: inherit;
+  color: var(--text);
+  text-align: left;
+  width: 100%;
+}
+.tpl-picker-item:hover { border-color: var(--accent); }
+.tpl-picker-item b { font-size: 0.95rem; display: block; margin-bottom: 2px; }
+.tpl-picker-item small { color: var(--muted); font-size: 0.8rem; }
+.tpl-picker-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 24px 0;
+  margin: 0;
+}
+.tpl-picker-close {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--muted);
+  align-self: flex-end;
+  transition: background 0.15s;
+}
+.tpl-picker-close:hover { background: var(--surface-2); }

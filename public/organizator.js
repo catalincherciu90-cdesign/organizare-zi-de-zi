@@ -113,6 +113,7 @@ function showList() {
   $('#editor-view').classList.add('hidden');
   $('#logout-btn').classList.remove('hidden');
   renderList();
+  loadStats();
 }
 function showEditor() {
   $('#gate').classList.add('hidden');
@@ -282,6 +283,145 @@ $('#save-btn').addEventListener('click', async () => {
     btn.textContent = '💾 Salvează planul';
   }
 });
+
+// ————— Dashboard statistici —————
+async function loadStats() {
+  try {
+    const res = await api('/api/org/stats');
+    if (!res.ok) return;
+    const data = await res.json();
+    renderStats(data);
+  } catch {
+    // statistici opționale — eșecul nu blochează lista
+  }
+}
+
+function renderStats(data) {
+  const el = $('#org-stats');
+  if (!el) return;
+  const req = data.requests || {};
+  const total = req.total || 0;
+  const waiting = (req.nou || 0) + (req.in_lucru || 0);
+  const gata = req.gata || 0;
+  const accounts = data.accounts || 0;
+  const last7 = data.last7days || 0;
+  el.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-num">${total}</div>
+      <div class="stat-label">Total cereri</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">${waiting}</div>
+      <div class="stat-label">În așteptare</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">${gata}</div>
+      <div class="stat-label">Gata</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">${accounts}</div>
+      <div class="stat-label">Abonați</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">${last7}</div>
+      <div class="stat-label">Cereri (7 zile)</div>
+    </div>`;
+}
+
+// ————— Șabloane organizator —————
+$('#save-tpl-btn').addEventListener('click', async () => {
+  const name = prompt('Nume șablon (max 60 caractere):');
+  if (!name || !name.trim()) return;
+
+  const blocks = $$('#ed-blocks .block-edit')
+    .map((row) => ({
+      time: $('.be-time', row).value,
+      category: $('.be-cat', row).value,
+      title: $('.be-title', row).value.trim(),
+      detail: $('.be-detail', row).value.trim(),
+    }))
+    .filter((b) => b.title || b.detail);
+
+  const plan = {
+    summary: $('#ed-summary').value.trim(),
+    blocks,
+    tips: $('#ed-tips').value.split('\n').map((t) => t.trim()).filter(Boolean),
+  };
+
+  try {
+    const res = await api('/api/org/templates', {
+      method: 'POST',
+      body: JSON.stringify({ name: name.trim(), plan }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Eroare');
+    toast('Șablon "' + data.name + '" salvat ✓');
+  } catch (err) {
+    toast(err.message || 'Nu am putut salva șablonul.');
+  }
+});
+
+$('#apply-tpl-btn').addEventListener('click', async () => {
+  try {
+    const res = await api('/api/org/templates');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Eroare');
+    showTplPicker(data.templates || []);
+  } catch (err) {
+    toast(err.message || 'Nu am putut încărca șabloanele.');
+  }
+});
+
+$('#tpl-picker-close').addEventListener('click', () => {
+  $('#tpl-picker-backdrop').classList.add('hidden');
+});
+
+$('#tpl-picker-backdrop').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+});
+
+function showTplPicker(templates) {
+  const list = $('#tpl-picker-list');
+  list.innerHTML = '';
+  if (!templates.length) {
+    list.innerHTML = '<p class="tpl-picker-empty">Niciun șablon salvat încă.</p>';
+  } else {
+    templates.forEach((tpl) => {
+      const btn = document.createElement('button');
+      btn.className = 'tpl-picker-item';
+      btn.innerHTML = `
+        <div>
+          <b>${esc(tpl.name)}</b><br>
+          <small>${tpl.blocks} blocuri · ${fmtDate(tpl.createdAt)}</small>
+        </div>
+        <span class="btn btn-sm btn-ghost" style="pointer-events:none">Aplică</span>`;
+      btn.addEventListener('click', () => applyTemplate(tpl.id));
+      list.appendChild(btn);
+    });
+  }
+  $('#tpl-picker-backdrop').classList.remove('hidden');
+}
+
+async function applyTemplate(id) {
+  try {
+    const res = await api('/api/org/template?id=' + encodeURIComponent(id));
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Eroare');
+    const tpl = data.template;
+
+    // Populează editorul — fără a atinge profilul / statusul / nota / shopping-list
+    $('#ed-summary').value = tpl.plan?.summary || '';
+    $('#ed-tips').value = (tpl.plan?.tips || []).join('\n');
+    const wrap = $('#ed-blocks');
+    wrap.innerHTML = '';
+    (tpl.plan?.blocks || []).forEach((b) => wrap.appendChild(blockRow(b)));
+
+    $('#tpl-picker-backdrop').classList.add('hidden');
+    toast('Șablon "' + tpl.name + '" aplicat ✓');
+  } catch (err) {
+    toast(err.message || 'Nu am putut aplica șablonul.');
+  }
+}
 
 // ————— utilitare —————
 function esc(s) {

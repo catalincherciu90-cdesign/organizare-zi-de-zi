@@ -49,6 +49,7 @@
           </div>
           <button class="btn btn-ghost" id="reload-btn">↻ Reîncarcă</button>
         </div>
+        <div id="org-stats" class="org-stats"></div>
         <div class="filters" id="filters">
           <button class="chip-filter active" data-filter="all">Toate</button>
           <button class="chip-filter" data-filter="nou">🕐 Noi</button>
@@ -63,7 +64,11 @@
       <div id="editor-view" class="hidden">
         <div class="app-head">
           <button class="btn btn-ghost" id="back-btn">← Înapoi la listă</button>
-          <button class="btn btn-primary" id="save-btn">💾 Salvează planul</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-ghost btn-sm" id="apply-tpl-btn">📋 Aplică șablon</button>
+            <button class="btn btn-ghost btn-sm" id="save-tpl-btn">💾 Salvează ca șablon</button>
+            <button class="btn btn-primary" id="save-btn">💾 Salvează planul</button>
+          </div>
         </div>
 
         <div class="editor-grid">
@@ -113,6 +118,15 @@
 
     </div>
   </main>
+
+  <!-- Selector șabloane organizator -->
+  <div id="tpl-picker-backdrop" class="tpl-picker-backdrop hidden" role="dialog" aria-modal="true" aria-label="Alege un șablon">
+    <div class="tpl-picker">
+      <h3 style="margin:0">Alege un șablon</h3>
+      <div class="tpl-picker-list" id="tpl-picker-list"></div>
+      <button class="tpl-picker-close" id="tpl-picker-close">Anulează</button>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
   <script src="/organizator.js"></script>

@@ -44,6 +44,17 @@ export default {
       if (request.method === 'PUT') return orgUpdate(request, env, url);
       return methodNotAllowed('GET, PUT');
     }
+    if (path === '/api/org/templates') {
+      if (request.method === 'GET') return orgListTemplates(request, env);
+      if (request.method === 'POST') return orgCreateTemplate(request, env);
+      return methodNotAllowed('GET, POST');
+    }
+    if (path === '/api/org/template') {
+      if (request.method === 'GET') return orgGetTemplate(request, env, url);
+      if (request.method === 'DELETE') return orgDeleteTemplate(request, env, url);
+      return methodNotAllowed('GET, DELETE');
+    }
+    if (path === '/api/org/stats') return only('GET', request, () => orgGetStats(request, env));
 
     // URL prietenos pentru panou
     if (path === '/organizator' || path === '/organizator/') {
@@ -266,6 +277,52 @@ async function orgUpdate(request, env, url) {
   const rec = await storeStub(env).updateRequest(code(url), patch);
   if (!rec) return json({ error: 'Cerere inexistentă.' }, 404);
   return json({ request: rec });
+}
+
+// ————— Organizator: șabloane globale + statistici —————
+
+async function orgListTemplates(request, env) {
+  const blocked = await guard(request, env);
+  if (blocked) return blocked;
+  const templates = await storeStub(env).listOrgTemplates();
+  return json({ templates });
+}
+
+async function orgCreateTemplate(request, env) {
+  const blocked = await guard(request, env);
+  if (blocked) return blocked;
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Body invalid.' }, 400); }
+  const plan = normalizePlan(body.plan || {});
+  try {
+    const result = await storeStub(env).createOrgTemplate({ name: body.name, plan });
+    return json(result);
+  } catch (err) {
+    return json({ error: err.message || 'Eroare la salvare.' }, 400);
+  }
+}
+
+async function orgGetTemplate(request, env, url) {
+  const blocked = await guard(request, env);
+  if (blocked) return blocked;
+  const template = await storeStub(env).getOrgTemplate(code(url));
+  if (!template) return json({ error: 'Șablon inexistent.' }, 404);
+  return json({ template });
+}
+
+async function orgDeleteTemplate(request, env, url) {
+  const blocked = await guard(request, env);
+  if (blocked) return blocked;
+  const ok = await storeStub(env).deleteOrgTemplate(code(url));
+  if (!ok) return json({ error: 'Șablon inexistent.' }, 404);
+  return json({ ok: true });
+}
+
+async function orgGetStats(request, env) {
+  const blocked = await guard(request, env);
+  if (blocked) return blocked;
+  const stats = await storeStub(env).orgStats();
+  return json(stats);
 }
 
 // ————— utilitare HTTP —————
