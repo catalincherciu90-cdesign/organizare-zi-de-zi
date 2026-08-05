@@ -1,0 +1,35 @@
+{
+  "name": "Organizare Zi de Zi",
+  "short_name": "Organizare",
+  "description": "Organizatorul tău personal pentru fiecare zi: mese, mișcare, timp și relaxare.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F6F1E9",
+  "theme_color": "#BE5A35",
+  "lang": "ro",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/icon.svg",
+      "sizes": "256x256",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ]
+}

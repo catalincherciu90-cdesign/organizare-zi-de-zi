@@ -827,3 +827,8 @@ verifyAccToken().then(() => renderAccBar());
 if (state.code && state.status !== 'gata' && state.notifyOptIn) {
   startPolling();
 }
+
+// ————— PWA: Service Worker —————
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}

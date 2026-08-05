@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- Background: teracotă cu gradient subtle -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#BE5A35;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A84A29;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FDD835;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F9A825;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fundal rotunjit: teracotă -->
+  <rect width="192" height="192" rx="40" ry="40" fill="url(#bgGrad)" />
+
+  <!-- Soare stilizat în dreapta sus -->
+  <circle cx="138" cy="54" r="28" fill="url(#sunGrad)" opacity="0.9" />
+
+  <!-- Raze soare -->
+  <g stroke="#FDD835" stroke-width="3" stroke-linecap="round" opacity="0.7">
+    <line x1="138" y1="16" x2="138" y2="6" />
+    <line x1="170" y1="54" x2="180" y2="54" />
+    <line x1="164" y1="28" x2="172" y2="20" />
+    <line x1="164" y1="80" x2="172" y2="88" />
+  </g>
+
+  <!-- Calendar/planner în centru-stânga: salvie + alb -->
+  <rect x="35" y="60" width="70" height="85" rx="6" ry="6" fill="#5F9B78" opacity="0.95" />
+
+  <!-- Header bar calendar (mai deschis) -->
+  <rect x="35" y="60" width="70" height="18" rx="6" ry="6" fill="#5F9B78" opacity="0.7" />
+
+  <!-- Liniuțe pe calendar (represent zile/ore) -->
+  <g stroke="#F6F1E9" stroke-width="2" stroke-linecap="round" opacity="0.6">
+    <line x1="42" y1="82" x2="95" y2="82" />
+    <line x1="42" y1="98" x2="95" y2="98" />
+    <line x1="42" y1="114" x2="95" y2="114" />
+    <line x1="42" y1="130" x2="95" y2="130" />
+  </g>
+
+  <!-- Puncte marcate (done items) - crem -->
+  <circle cx="42" cy="82" r="3" fill="#F6F1E9" opacity="0.8" />
+  <circle cx="42" cy="98" r="3" fill="#F6F1E9" opacity="0.8" />
+  <circle cx="42" cy="114" r="3" fill="#F6F1E9" opacity="0.8" />
+
+  <!-- Text "Azi" simplu pe calendar -->
+  <text x="70" y="70" font-size="10" fill="#F6F1E9" text-anchor="middle" font-weight="bold" opacity="0.8">Azi</text>
+</svg>
