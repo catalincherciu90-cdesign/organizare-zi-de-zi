@@ -303,6 +303,13 @@ section { padding: 68px 0; }
 .acc-user { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .acc-hint { font-size: 0.82rem; color: var(--muted); }
 .acc-email-display { font-size: 0.88rem; color: color-mix(in srgb, var(--accent-2) 65%, black); font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Pe telefon: butoanele contului se aliniază curat la stânga, emailul pe rând propriu */
+@media (max-width: 640px) {
+  .acc-bar { justify-content: flex-start; }
+  .acc-guest, .acc-user { justify-content: flex-start; width: 100%; }
+  .acc-email-display { width: 100%; max-width: none; }
+  .acc-user .btn-sm { flex: 1 1 auto; }
+}
 
 .acc-auth-panel { max-width: 460px; margin-bottom: 22px; }
 .acc-auth-panel h3 { margin: 0 0 18px; font-size: 1.1rem; }
