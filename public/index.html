@@ -25,6 +25,36 @@
   <main id="landing" data-view>
     <a id="top"></a>
     <section class="hero">
+      <div class="hero-scene" aria-hidden="true">
+        <svg viewBox="0 0 800 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="670" cy="86" r="72" fill="var(--accent-2)" opacity="0.16"></circle>
+          <circle cx="670" cy="86" r="46" fill="var(--accent-2)" opacity="0.32"></circle>
+          <g stroke="var(--accent-2)" stroke-width="4" stroke-linecap="round" opacity="0.3">
+            <path d="M670,26 L670,10"></path>
+            <path d="M730,86 L746,86"></path>
+            <path d="M715,45 L727,33"></path>
+            <path d="M625,45 L613,33"></path>
+          </g>
+          <path d="M0,300 C150,232 300,262 420,298 C560,338 650,300 800,320 L800,400 L0,400 Z" fill="var(--accent)" opacity="0.13"></path>
+          <path d="M0,342 C180,300 340,330 480,340 C620,350 700,320 800,350 L800,400 L0,400 Z" fill="var(--accent)" opacity="0.20"></path>
+          <g stroke="var(--accent)" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.45">
+            <path d="M64,368 Q54,326 74,304"></path>
+            <path d="M64,368 Q80,336 96,326"></path>
+            <path d="M64,368 Q48,340 32,334"></path>
+          </g>
+          <g transform="translate(516,210) rotate(-6)" opacity="0.92">
+            <rect x="0" y="0" width="94" height="114" rx="14" fill="var(--surface)" stroke="var(--border)" stroke-width="2"></rect>
+            <rect x="16" y="18" width="62" height="9" rx="4.5" fill="var(--accent-2)" opacity="0.55"></rect>
+            <circle cx="22" cy="48" r="7" fill="none" stroke="var(--meal)" stroke-width="3"></circle>
+            <path d="M18,48 l3,4 l7,-8" stroke="var(--meal)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+            <rect x="36" y="45" width="44" height="6" rx="3" fill="var(--muted)" opacity="0.35"></rect>
+            <circle cx="22" cy="72" r="7" fill="none" stroke="var(--sport)" stroke-width="3"></circle>
+            <rect x="36" y="69" width="44" height="6" rx="3" fill="var(--muted)" opacity="0.35"></rect>
+            <circle cx="22" cy="96" r="7" fill="none" stroke="var(--work)" stroke-width="3"></circle>
+            <rect x="36" y="93" width="44" height="6" rx="3" fill="var(--muted)" opacity="0.35"></rect>
+          </g>
+        </svg>
+      </div>
       <div class="container hero-grid">
         <div>
           <span class="eyebrow">✨ Organizare personală, zi de zi</span>
@@ -42,6 +72,70 @@
           <div class="mini-block"><span class="time">08:15</span><span class="chip" style="background:var(--sport)"></span><span class="body"><b>Mișcare de dimineață</b><small>Cardio ușor 30 min + stretching</small></span></div>
           <div class="mini-block"><span class="time">10:00</span><span class="chip" style="background:var(--work)"></span><span class="body"><b>Bloc de focus</b><small>Sarcina cea mai importantă a zilei</small></span></div>
           <div class="mini-block"><span class="time">21:30</span><span class="chip" style="background:var(--free)"></span><span class="body"><b>Rutină de somn</b><small>Fără ecrane, lumină scăzută</small></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="day-moments">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker">O zi tipică</span>
+          <h2>Momentele zilei tale, organizate de la răsărit la culcare</h2>
+        </div>
+        <div class="moments-row">
+          <div class="moment-item">
+            <svg class="moment-ico" viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="46" fill="color-mix(in srgb, var(--meal) 14%, transparent)"></circle>
+              <circle cx="30" cy="28" r="12" fill="var(--routine)"></circle>
+              <g stroke="var(--routine)" stroke-width="3" stroke-linecap="round">
+                <path d="M30,10 L30,4"></path>
+                <path d="M14,28 L8,28"></path>
+                <path d="M17,15 L13,11"></path>
+              </g>
+              <ellipse cx="55" cy="66" rx="28" ry="12" fill="var(--surface)" stroke="var(--meal)" stroke-width="3"></ellipse>
+              <circle cx="55" cy="63" r="9" fill="var(--routine)"></circle>
+              <circle cx="55" cy="63" r="4" fill="var(--surface)"></circle>
+            </svg>
+            <h4>🌅 Dimineață</h4>
+            <p>Mic dejun echilibrat care te pornește bine</p>
+          </div>
+          <div class="moment-item">
+            <svg class="moment-ico" viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="46" fill="color-mix(in srgb, var(--sport) 14%, transparent)"></circle>
+              <g fill="var(--sport)">
+                <circle cx="58" cy="24" r="8"></circle>
+                <path d="M50,40 l14,6 l-4,14 l10,10 l-6,8 l-12,-12 l-6,4 l-10,16 l-8,-5 l12,-20 l14,-8 l-2,-9 l-14,3 l-2,-9 z"></path>
+              </g>
+            </svg>
+            <h4>💪 Mișcare</h4>
+            <p>Antrenament potrivit energiei tale de azi</p>
+          </div>
+          <div class="moment-item">
+            <svg class="moment-ico" viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="46" fill="color-mix(in srgb, var(--work) 14%, transparent)"></circle>
+              <circle cx="50" cy="52" r="26" fill="var(--surface)" stroke="var(--work)" stroke-width="4"></circle>
+              <path d="M50,52 L50,34" stroke="var(--work)" stroke-width="4" stroke-linecap="round"></path>
+              <path d="M50,52 L64,58" stroke="var(--accent-2)" stroke-width="4" stroke-linecap="round"></path>
+              <circle cx="50" cy="52" r="3" fill="var(--work)"></circle>
+              <rect x="40" y="16" width="6" height="12" rx="3" fill="var(--work)"></rect>
+              <rect x="54" y="16" width="6" height="12" rx="3" fill="var(--work)"></rect>
+            </svg>
+            <h4>⏰ Focus</h4>
+            <p>Bloc de concentrare pentru ce contează azi</p>
+          </div>
+          <div class="moment-item">
+            <svg class="moment-ico" viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="46" fill="color-mix(in srgb, var(--free) 14%, transparent)"></circle>
+              <path d="M62,28 A24,24 0 1 0 62,72 A19,19 0 1 1 62,28 Z" fill="var(--free)"></path>
+              <g fill="var(--routine)">
+                <circle cx="28" cy="30" r="3"></circle>
+                <circle cx="20" cy="46" r="2"></circle>
+                <circle cx="34" cy="60" r="2.4"></circle>
+              </g>
+            </svg>
+            <h4>🌙 Seară</h4>
+            <p>Rutină de somn calmă, fără ecrane</p>
+          </div>
         </div>
       </div>
     </section>
@@ -70,21 +164,63 @@
         </div>
         <div class="agents">
           <article class="agent-card" style="--a:var(--meal)">
+            <div class="agent-illustration" aria-hidden="true">
+              <svg viewBox="0 0 200 90">
+                <circle cx="100" cy="45" r="30" fill="var(--surface)" stroke="var(--meal)" stroke-width="4"></circle>
+                <circle cx="100" cy="45" r="19" fill="color-mix(in srgb, var(--meal) 25%, transparent)"></circle>
+                <circle cx="93" cy="40" r="5" fill="var(--routine)"></circle>
+                <circle cx="106" cy="48" r="4" fill="var(--sport)"></circle>
+                <circle cx="100" cy="52" r="3.6" fill="var(--accent)"></circle>
+                <path d="M56,20 L56,34 M60,20 L60,34 M64,20 L64,34 M56,34 Q60,40 64,34 L60,70" stroke="var(--meal)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M142,20 C150,24 150,34 144,38 L144,70" stroke="var(--meal)" stroke-width="3" fill="none" stroke-linecap="round"></path>
+              </svg>
+            </div>
             <div class="head"><span class="ico">🥗</span><div><h3>Mese &amp; nutriție</h3><span class="tag">Ce mănânci azi</span></div></div>
             <p>Îți luăm de pe cap întrebarea „ce mănânc azi?" și o transformăm într-un plan clar.</p>
             <ul><li>Meniuri zilnice pe baza preferințelor și restricțiilor tale</li><li>Liste de cumpărături pregătite pentru tine</li><li>Sugestii rapide, nu diete rigide</li></ul>
           </article>
           <article class="agent-card" style="--a:var(--sport)">
+            <div class="agent-illustration" aria-hidden="true">
+              <svg viewBox="0 0 200 90">
+                <path d="M20,80 Q60,60 100,80 T180,80" stroke="var(--sport)" stroke-width="3" fill="none" opacity="0.3" stroke-linecap="round"></path>
+                <g fill="var(--sport)">
+                  <circle cx="118" cy="20" r="10"></circle>
+                  <path d="M100,36 l20,8 l-6,18 l16,14 l-8,10 l-18,-16 l-8,6 l-14,22 l-11,-7 l16,-26 l14,-8 l-3,-12 l-20,4 l-3,-11 z"></path>
+                </g>
+              </svg>
+            </div>
             <div class="head"><span class="ico">💪</span><div><h3>Mișcare &amp; sport</h3><span class="tag">Rămâi activ</span></div></div>
             <p>Mișcare potrivită energiei tale de azi, nu un plan fix rupt din realitate.</p>
             <ul><li>Antrenamente potrivite nivelului și timpului tău</li><li>Urmărim progresul și ajustăm intensitatea</li><li>Alternative rapide când n-ai chef de sală</li></ul>
           </article>
           <article class="agent-card" style="--a:var(--work)">
+            <div class="agent-illustration" aria-hidden="true">
+              <svg viewBox="0 0 200 90">
+                <rect x="70" y="16" width="60" height="58" rx="10" fill="var(--surface)" stroke="var(--work)" stroke-width="4"></rect>
+                <rect x="70" y="16" width="60" height="16" rx="8" fill="var(--work)"></rect>
+                <circle cx="86" cy="16" r="4" fill="var(--surface)"></circle>
+                <circle cx="114" cy="16" r="4" fill="var(--surface)"></circle>
+                <circle cx="100" cy="52" r="16" fill="color-mix(in srgb, var(--work) 18%, transparent)" stroke="var(--work)" stroke-width="3"></circle>
+                <path d="M100,52 L100,42" stroke="var(--work)" stroke-width="3" stroke-linecap="round"></path>
+                <path d="M100,52 L108,56" stroke="var(--accent-2)" stroke-width="3" stroke-linecap="round"></path>
+              </svg>
+            </div>
             <div class="head"><span class="ico">⏰</span><div><h3>Timp &amp; rutine</h3><span class="tag">Ordine în zi</span></div></div>
             <p>Punem ordine în ziua ta fără să te sufocăm cu notificări.</p>
             <ul><li>Zi structurată în blocuri realiste de timp</li><li>Semnalăm suprapunerile și te ajutăm să repriorizezi</li><li>Construim rutine care rămân, nu doar liste de bifat</li></ul>
           </article>
           <article class="agent-card" style="--a:var(--free)">
+            <div class="agent-illustration" aria-hidden="true">
+              <svg viewBox="0 0 200 90">
+                <path d="M118,18 A28,28 0 1 0 118,74 A22,22 0 1 1 118,18 Z" fill="var(--free)"></path>
+                <g fill="var(--routine)">
+                  <circle cx="62" cy="24" r="4"></circle>
+                  <circle cx="48" cy="42" r="2.6"></circle>
+                  <circle cx="70" cy="52" r="3"></circle>
+                  <circle cx="40" cy="60" r="2.2"></circle>
+                </g>
+              </svg>
+            </div>
             <div class="head"><span class="ico">🌙</span><div><h3>Relaxare &amp; somn</h3><span class="tag">Odihnă reală</span></div></div>
             <p>Avem grijă ca odihna și relaxarea să nu mai fie ultimele pe listă.</p>
             <ul><li>Rutină de somn optimizată pe obiceiurile tale</li><li>Momente de relaxare integrate firesc în program</li><li>Deconectare cu exerciții scurte anti-burnout</li></ul>
@@ -124,6 +260,27 @@
             <a href="#" class="btn btn-ghost btn-block" data-goto="app">Încearcă 7 zile, pe gratis</a>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="cta-banner">
+      <div class="cta-banner-bg" aria-hidden="true">
+        <svg viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="cta-dots-pattern" width="60" height="60" patternUnits="userSpaceOnUse">
+              <circle cx="6" cy="6" r="3" fill="var(--surface)" opacity="0.18"></circle>
+            </pattern>
+          </defs>
+          <rect width="1200" height="300" fill="url(#cta-dots-pattern)"></rect>
+          <circle cx="1080" cy="60" r="90" fill="var(--surface)" opacity="0.10"></circle>
+          <circle cx="120" cy="250" r="60" fill="var(--surface)" opacity="0.08"></circle>
+          <path d="M0,230 C200,180 380,220 560,230 C760,240 900,190 1200,220 L1200,300 L0,300 Z" fill="var(--surface)" opacity="0.12"></path>
+        </svg>
+      </div>
+      <div class="container cta-banner-inner">
+        <h2>Ești pregătit pentru o zi mai bine organizată?</h2>
+        <p>Spune-ne cum arată ziua ta și primești un plan personalizat în câteva secunde — fără efort de planificare.</p>
+        <a href="#" class="btn btn-primary btn-lg" data-goto="app">Vreau planul meu de azi →</a>
       </div>
     </section>
   </main>
