@@ -28,6 +28,12 @@ function show(view) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Autentificat = token ȘI email (aceeași condiție ca bara de cont). Un token
+// vechi/parțial fără email NU e considerat logat, ca să nu treacă de gate.
+function isLoggedIn() {
+  return !!(state.accToken && state.accEmail);
+}
+
 document.addEventListener('click', (e) => {
   const trigger = e.target.closest('[data-goto]');
   if (!trigger) return;
@@ -36,7 +42,7 @@ document.addEventListener('click', (e) => {
   // Dacă billing e configurat și butonul are un plan plătit, pornim checkout
   if (billingConfigured && trigger.dataset.plan) {
     const plan = trigger.dataset.plan;
-    if (!state.accToken) {
+    if (!isLoggedIn()) {
       show('app');
       openAccForm('login');
       toast('Autentifică-te ca să te abonezi');
@@ -49,7 +55,7 @@ document.addEventListener('click', (e) => {
   const target = trigger.dataset.goto;
   if (target === 'app') {
     // Gate: utilizator nelogat nu poate accesa planificatorul
-    if (!state.accToken) {
+    if (!isLoggedIn()) {
       show('app');
       openAccForm('register');
       toast('Creează un cont sau autentifică-te ca să începi');
@@ -156,7 +162,7 @@ function renderResult(plan, checked = {}, opts = {}) {
   showAppStep('result');
   // Butonul de salvare ca rutină — vizibil doar dacă utilizatorul e logat
   const saveTplBtn = $('#save-template-btn');
-  if (saveTplBtn) saveTplBtn.classList.toggle('hidden', !state.accToken);
+  if (saveTplBtn) saveTplBtn.classList.toggle('hidden', !isLoggedIn());
 
   $('#plan-summary-text').textContent = plan.summary || '';
   $('#plan-src').textContent = opts.lookup ? '🗓️ Planul tău, de la organizator' : '🗓️ Planul tău de azi';
