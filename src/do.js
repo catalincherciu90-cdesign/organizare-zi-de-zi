@@ -45,6 +45,17 @@ export class Store extends DurableObject {
     return store.verifyAccount(this.ctx.storage, email, password);
   }
 
+  // ————— Billing —————
+  setAccountBilling(accId, billing) {
+    return store.setAccountBilling(this.ctx.storage, accId, billing);
+  }
+  linkCustomer(customerId, accId) {
+    return store.linkCustomer(this.ctx.storage, customerId, accId);
+  }
+  getAccountIdByCustomer(customerId) {
+    return store.getAccountIdByCustomer(this.ctx.storage, customerId);
+  }
+
   // ————— Sesiuni —————
   createSession(accId) {
     return store.createSession(this.ctx.storage, accId);

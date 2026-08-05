@@ -2,6 +2,7 @@
 // Navigare între landing/app, colectare profil, apel /api/plan, checklist cu progres.
 
 const STORE_KEY = 'ozz.state.v1';
+let billingConfigured = false; // setat după GET /api/billing/state la init
 const CAT_LABEL = { meal: '🥗 Masă', sport: '💪 Sport', work: '⏰ Focus', free: '🌙 Timp liber', routine: '⏰ Rutină' };
 const STATUS_LABEL = {
   nou: '🕐 Trimis — în așteptare',
@@ -31,6 +32,20 @@ document.addEventListener('click', (e) => {
   const trigger = e.target.closest('[data-goto]');
   if (!trigger) return;
   e.preventDefault();
+
+  // Dacă billing e configurat și butonul are un plan plătit, pornim checkout
+  if (billingConfigured && trigger.dataset.plan) {
+    const plan = trigger.dataset.plan;
+    if (!state.accToken) {
+      show('app');
+      openAccForm('login');
+      toast('Autentifică-te ca să te abonezi');
+      return;
+    }
+    startCheckout(plan);
+    return;
+  }
+
   const target = trigger.dataset.goto;
   if (target === 'app') {
     show('app');
@@ -557,7 +572,7 @@ function showNotificationBanner(code) {
 
 // ————— Persistență —————
 function load() {
-  const defaults = { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '', accToken: null, accEmail: null, notifyOptIn: false, notifiedGata: false };
+  const defaults = { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '', accToken: null, accEmail: null, accPlan: 'start', accSubStatus: 'inactive', notifyOptIn: false, notifiedGata: false };
   try {
     const stored = JSON.parse(localStorage.getItem(STORE_KEY));
     // merge cu defaults — câmpurile noi (accToken, accEmail, notifyOptIn, notifiedGata) apar chiar dacă lipsesc din localStorage vechi
@@ -602,6 +617,23 @@ function renderAccBar() {
     user.classList.remove('hidden');
     const display = $('#acc-email-display');
     if (display) display.textContent = state.accEmail;
+
+    // Badge plan
+    const badge = $('#acc-plan-badge');
+    if (badge) {
+      const plan = state.accPlan || 'start';
+      const planLabel = { start: 'Start', echilibru: 'Echilibru', premium: 'Premium' };
+      badge.textContent = planLabel[plan] || plan;
+      badge.dataset.plan = plan;
+      badge.classList.toggle('hidden', !billingConfigured);
+    }
+
+    // Buton portal — vizibil doar pe plan plătit și billing configurat
+    const manageBtn = $('#acc-manage-billing-btn');
+    if (manageBtn) {
+      const isPaid = ['echilibru', 'premium'].includes(state.accPlan);
+      manageBtn.classList.toggle('hidden', !(billingConfigured && isPaid));
+    }
   } else {
     guest.classList.remove('hidden');
     user.classList.add('hidden');
@@ -632,7 +664,8 @@ function closeAccForm() {
   if (panel) panel.classList.add('hidden');
 }
 
-// Verifică token-ul cu serverul la inițializare; curăță dacă e expirat
+// Verifică token-ul cu serverul la inițializare; curăță dacă e expirat.
+// Capturează și plan/subStatus din răspuns.
 async function verifyAccToken() {
   if (!state.accToken) return;
   try {
@@ -643,10 +676,31 @@ async function verifyAccToken() {
       state.accToken = null;
       state.accEmail = null;
       save();
+    } else {
+      const data = await res.json();
+      state.accPlan = data.plan || 'start';
+      state.accSubStatus = data.subStatus || 'inactive';
+      save();
     }
   } catch {
     // eroare de rețea — păstrăm token-ul, va fi verificat la următoarea acțiune
   }
+}
+
+// Reîmprospătează informațiile de cont (plan, subStatus) fără verificare token.
+async function refreshAccInfo() {
+  if (!state.accToken) return;
+  try {
+    const res = await fetch('/api/account/me', {
+      headers: { 'x-acc-token': state.accToken },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      state.accPlan = data.plan || 'start';
+      state.accSubStatus = data.subStatus || 'inactive';
+      save();
+    }
+  } catch {}
 }
 
 // Formatare dată pentru lista de istoric
@@ -742,6 +796,7 @@ $('#acc-form-submit')?.addEventListener('click', async () => {
     state.accEmail = data.email;
     save();
     closeAccForm();
+    await refreshAccInfo();
     renderAccBar();
     toast(accFormMode === 'register' ? 'Cont creat! Planurile tale se vor salva automat.' : 'Bine ai revenit!');
   } catch {
@@ -762,10 +817,77 @@ $('#acc-logout-btn')?.addEventListener('click', async () => {
   }
   state.accToken = null;
   state.accEmail = null;
+  state.accPlan = 'start';
+  state.accSubStatus = 'inactive';
   save();
   renderAccBar();
   toast('Ai ieșit din cont.');
 });
+
+$('#acc-manage-billing-btn')?.addEventListener('click', startPortal);
+
+// ————— Billing: checkout + portal —————
+
+async function startCheckout(plan) {
+  try {
+    const res = await fetch('/api/billing/checkout', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-acc-token': state.accToken },
+      body: JSON.stringify({ plan }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Eroare la checkout.');
+    window.location = data.url;
+  } catch (err) {
+    toast(err.message || 'Nu am putut porni checkout-ul. Încearcă din nou.');
+  }
+}
+
+async function startPortal() {
+  try {
+    const res = await fetch('/api/billing/portal', {
+      method: 'POST',
+      headers: { 'x-acc-token': state.accToken },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Eroare la portal.');
+    window.location = data.url;
+  } catch (err) {
+    toast(err.message || 'Nu am putut deschide portalul de plată. Încearcă din nou.');
+  }
+}
+
+// Inițializează billing: verifică dacă e configurat, actualizează UI,
+// gestionează redirect-ul de la Stripe cu ?billing=success.
+async function initBilling() {
+  try {
+    const res = await fetch('/api/billing/state');
+    if (!res.ok) return;
+    const data = await res.json();
+    billingConfigured = !!data.configured;
+
+    if (billingConfigured) {
+      // Actualizăm textul butoanelor de prețuri
+      $$('[data-plan]').forEach((btn) => {
+        if (btn.dataset.plan === 'echilibru' || btn.dataset.plan === 'premium') {
+          btn.textContent = 'Abonează-te';
+        }
+      });
+    }
+
+    // Detectăm revenirea de pe Stripe Checkout cu succes
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('billing') === 'success') {
+      // Curățăm querystring-ul din URL fără refresh
+      history.replaceState(null, '', window.location.pathname + window.location.hash);
+      await refreshAccInfo();
+      renderAccBar();
+      toast('Abonament activ! Bine ai venit pe planul ales.');
+    }
+  } catch {
+    // billing state nu e critic — continuăm fără
+  }
+}
 
 $('#acc-history-btn')?.addEventListener('click', () => {
   loadHistory();
@@ -833,6 +955,8 @@ document.addEventListener('visibilitychange', () => {
 // Randare imediată (din localStorage), apoi verificare server în background
 renderAccBar();
 verifyAccToken().then(() => renderAccBar());
+// Inițializăm billing: setăm billingConfigured + actualizăm UI butoane prețuri
+initBilling().then(() => renderAccBar());
 
 // Pornește polling-ul dacă avem cod și opt-in activ
 if (state.code && state.status !== 'gata' && state.notifyOptIn) {

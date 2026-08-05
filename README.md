@@ -32,7 +32,7 @@ organizare-zi-de-zi/
 │   ├── app.js              # profil, plan, checklist, trimitere + status
 │   ├── organizator.html    # panoul organizatorului
 │   ├── organizator.js      # listă cereri + editor de plan
-│   └── styles.css          # design system (dark theme)
+│   └── styles.css          # design system (temă caldă, luminoasă)
 ├── src/
 │   ├── index.js            # Worker: rutare API + servire assets
 │   ├── plan.js             # pregătirea planului (cu fallback demo)
@@ -87,6 +87,39 @@ Rutele de organizator cer header-ul `x-org-token: <parola>` (parola setată la p
 sau secretul `ORGANIZER_TOKEN`, dacă e configurat).
 `category` a unui bloc ∈ `meal | sport | work | free | routine`. Statusuri: `nou | in_lucru | gata`.
 
+## Activare plăți (Stripe)
+
+Plățile sunt **opționale** — fără secretele Stripe configurate, rutele `/api/billing/*` întorc `503`, iar site-ul funcționează exact ca înainte (butoanele de preț duc la aplicație). Se activează automat când secretele sunt prezente în mediu.
+
+### Pași de activare
+
+**1. Creează produse și prețuri în Stripe Dashboard** (Products → recurring), notează `price_xxx` pentru fiecare plan.
+
+**2. Setează secretele în Cloudflare Worker:**
+
+```bash
+npx wrangler secret put STRIPE_SECRET_KEY          # sk_live_... sau sk_test_...
+npx wrangler secret put STRIPE_WEBHOOK_SECRET      # whsec_... din Stripe Dashboard → Webhooks
+npx wrangler secret put STRIPE_PRICE_ECHILIBRU     # price_... pentru planul Echilibru (39 RON/lună)
+npx wrangler secret put STRIPE_PRICE_PREMIUM       # price_... pentru planul Premium (69 RON/lună)
+```
+
+**3. Configurează webhook-ul în Stripe Dashboard:**
+- URL: `https://<worker>.workers.dev/api/billing/webhook`
+- Evenimente de ascultat: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
+- Copiază `Signing secret` (începe cu `whsec_`) și pune-l în `STRIPE_WEBHOOK_SECRET`
+
+### Ce se activează
+
+- Butoanele „Echilibru" și „Premium" din secțiunea de prețuri devin „Abonează-te" și pornesc Stripe Checkout
+- Un badge cu planul curent apare în bara de cont a utilizatorilor logați
+- Utilizatorii pe plan plătit văd butonul „Gestionează plata" (deschide Billing Portal Stripe)
+- La revenire după checkout cu succes (`?billing=success`), planul se actualizează automat
+
+### Fără secretele setate
+
+`GET /api/billing/state` întoarce `{ configured: false }` — frontend-ul nu modifică nimic, butoanele duc la aplicație ca de obicei.
+
 ## Roadmap
 
 - [x] Panou pentru organizator (ajustare manuală a planurilor abonaților)
@@ -94,5 +127,9 @@ sau secretul `ORGANIZER_TOKEN`, dacă e configurat).
 - [x] Liste de cumpărături pentru domeniul mese
 - [x] Reminder-e în browser când planul e „gata" (notificări + verificare status)
 - [x] Export în calendar (.ics) al planului zilei
+- [x] PWA — instalabilă pe telefon, cu suport offline
+- [x] Plan săptămânal + rutine salvate (pentru conturi)
+- [x] Unelte organizator — șabloane, duplicare, dashboard statistici
+- [x] Plăți Stripe (abonamente) — se activează cu cheile Stripe
 - [ ] Reminder-e prin email / push cu pagina închisă (necesită furnizor extern)
 - [ ] Sincronizare live cu apps de fitness/somn (necesită OAuth per furnizor)

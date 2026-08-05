@@ -537,3 +537,27 @@ section { padding: 68px 0; }
   transition: background 0.15s;
 }
 .tpl-picker-close:hover { background: var(--surface-2); }
+
+/* ————— Badge plan abonament ————— */
+.acc-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: color-mix(in srgb, var(--accent) 80%, var(--text));
+  letter-spacing: 0.01em;
+}
+.acc-plan-badge[data-plan="echilibru"] {
+  border-color: color-mix(in srgb, var(--accent-2) 30%, transparent);
+  background: color-mix(in srgb, var(--accent-2) 10%, transparent);
+  color: color-mix(in srgb, var(--accent-2) 80%, var(--text));
+}
+.acc-plan-badge[data-plan="premium"] {
+  border-color: color-mix(in srgb, var(--free) 30%, transparent);
+  background: color-mix(in srgb, var(--free) 10%, transparent);
+  color: color-mix(in srgb, var(--free) 80%, var(--text));
+}

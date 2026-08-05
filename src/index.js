@@ -18,6 +18,12 @@ export default {
     if (path === '/api/submit') return only('POST', request, () => submit(request, env));
     if (path === '/api/my') return only('GET', request, () => myPlan(request, env, url));
 
+    // ————— API plăți (Stripe) — degradare grațioasă când lipsesc secretele —————
+    if (path === '/api/billing/state') return only('GET', request, () => billingState(env));
+    if (path === '/api/billing/checkout') return only('POST', request, () => billingCheckout(request, env));
+    if (path === '/api/billing/portal') return only('POST', request, () => billingPortal(request, env));
+    if (path === '/api/billing/webhook') return only('POST', request, () => billingWebhook(request, env));
+
     // ————— API cont abonat —————
     if (path === '/api/account/register') return only('POST', request, () => accRegister(request, env));
     if (path === '/api/account/login') return only('POST', request, () => accLogin(request, env));
@@ -149,7 +155,11 @@ async function accMe(request, env) {
   if (!accId) return json({ error: 'Token invalid.' }, 401);
   const acc = await storeStub(env).getAccountById(accId);
   if (!acc) return json({ error: 'Cont negăsit.' }, 401);
-  return json({ email: acc.email });
+  return json({
+    email: acc.email,
+    plan: acc.plan || 'start',
+    subStatus: acc.subStatus || 'inactive',
+  });
 }
 
 async function accDays(request, env) {
@@ -323,6 +333,204 @@ async function orgGetStats(request, env) {
   if (blocked) return blocked;
   const stats = await storeStub(env).orgStats();
   return json(stats);
+}
+
+// ————— Billing (Stripe) —————
+
+// true dacă secretul Stripe e configurat; false = billing neconfigurat
+function billingConfigured(env) {
+  return !!env.STRIPE_SECRET_KEY;
+}
+
+// GET /api/billing/state — public, fără autentificare
+function billingState(env) {
+  return json({ configured: billingConfigured(env) });
+}
+
+// POST /api/billing/checkout — creează un Stripe Checkout Session
+async function billingCheckout(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  if (!billingConfigured(env)) return json({ error: 'Plățile nu sunt configurate.' }, 503);
+
+  const accId = await resolveToken(request, env);
+  if (!accId) return json({ error: 'Token invalid.' }, 401);
+
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Body invalid.' }, 400); }
+
+  const plan = body.plan;
+  if (!['echilibru', 'premium'].includes(plan)) {
+    return json({ error: 'Plan invalid. Valori acceptate: echilibru, premium.' }, 400);
+  }
+
+  const acc = await storeStub(env).getAccountById(accId);
+  if (!acc) return json({ error: 'Cont negăsit.' }, 401);
+
+  const priceId = plan === 'echilibru' ? env.STRIPE_PRICE_ECHILIBRU : env.STRIPE_PRICE_PREMIUM;
+  if (!priceId) return json({ error: `Price ID pentru planul ${plan} nu e configurat.` }, 503);
+
+  const origin = new URL(request.url).origin;
+
+  const params = new URLSearchParams({
+    mode: 'subscription',
+    'line_items[0][price]': priceId,
+    'line_items[0][quantity]': '1',
+    client_reference_id: accId,
+    customer_email: acc.email,
+    'metadata[plan]': plan,
+    success_url: origin + '/?billing=success',
+    cancel_url: origin + '/#preturi',
+  });
+
+  const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY,
+      'content-type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
+  });
+
+  if (!stripeRes.ok) {
+    const err = await stripeRes.json().catch(() => ({}));
+    return json({ error: err.error?.message || 'Eroare Stripe la creare sesiune.' }, 502);
+  }
+
+  const session = await stripeRes.json();
+  return json({ url: session.url });
+}
+
+// POST /api/billing/portal — creează un Billing Portal Session
+async function billingPortal(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  if (!billingConfigured(env)) return json({ error: 'Plățile nu sunt configurate.' }, 503);
+
+  const accId = await resolveToken(request, env);
+  if (!accId) return json({ error: 'Token invalid.' }, 401);
+
+  const acc = await storeStub(env).getAccountById(accId);
+  if (!acc) return json({ error: 'Cont negăsit.' }, 401);
+
+  if (!acc.customerId) return json({ error: 'Contul nu are un abonament Stripe asociat.' }, 400);
+
+  const origin = new URL(request.url).origin;
+
+  const params = new URLSearchParams({
+    customer: acc.customerId,
+    return_url: origin,
+  });
+
+  const stripeRes = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY,
+      'content-type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
+  });
+
+  if (!stripeRes.ok) {
+    const err = await stripeRes.json().catch(() => ({}));
+    return json({ error: err.error?.message || 'Eroare Stripe la portal.' }, 502);
+  }
+
+  const session = await stripeRes.json();
+  return json({ url: session.url });
+}
+
+// POST /api/billing/webhook — primește și verifică evenimente Stripe
+async function billingWebhook(request, env) {
+  if (!hasStore(env)) return storeMissing();
+  if (!billingConfigured(env)) return json({ error: 'Plățile nu sunt configurate.' }, 503);
+
+  const rawBody = await request.text();
+  const sigHeader = request.headers.get('stripe-signature') || '';
+
+  const valid = await verifyStripeSignature(rawBody, sigHeader, env.STRIPE_WEBHOOK_SECRET || '');
+  if (!valid) return json({ error: 'Semnătură invalidă.' }, 400);
+
+  let event;
+  try { event = JSON.parse(rawBody); } catch { return json({ error: 'Body invalid.' }, 400); }
+
+  const obj = event?.data?.object;
+
+  if (event.type === 'checkout.session.completed') {
+    const accId = obj.client_reference_id;
+    const customerId = obj.customer;
+    const subId = obj.subscription;
+    const plan = obj.metadata?.plan || 'echilibru';
+    if (accId) {
+      await storeStub(env).setAccountBilling(accId, {
+        plan,
+        subStatus: 'active',
+        customerId,
+        subId,
+      });
+      if (customerId) await storeStub(env).linkCustomer(customerId, accId);
+    }
+  } else if (event.type === 'customer.subscription.deleted') {
+    const customerId = obj.customer;
+    if (customerId) {
+      const accId = await storeStub(env).getAccountIdByCustomer(customerId);
+      if (accId) {
+        await storeStub(env).setAccountBilling(accId, { plan: 'start', subStatus: 'canceled' });
+      }
+    }
+  } else if (event.type === 'customer.subscription.updated') {
+    const customerId = obj.customer;
+    const subStatus = obj.status || 'unknown';
+    if (customerId) {
+      const accId = await storeStub(env).getAccountIdByCustomer(customerId);
+      if (accId) {
+        await storeStub(env).setAccountBilling(accId, { subStatus });
+      }
+    }
+  }
+  // Orice alt tip de eveniment → tot 200 (Stripe re-încearcă altfel)
+  return json({ ok: true });
+}
+
+// Verifică semnătura HMAC-SHA256 a unui webhook Stripe.
+// Formatul header-ului: t=<timestamp>,v1=<hex>,v1=<hex>,...
+// Payload semnat: <timestamp>.<rawBody>
+// Comparație în timp constant per valoare v1.
+async function verifyStripeSignature(rawBody, sigHeader, secret) {
+  if (!sigHeader || !secret) return false;
+
+  const t = sigHeader.match(/t=(\d+)/)?.[1];
+  const v1s = [...sigHeader.matchAll(/v1=([a-f0-9]+)/g)].map((m) => m[1]);
+
+  if (!t || !v1s.length) return false;
+
+  const signedPayload = `${t}.${rawBody}`;
+  const enc = new TextEncoder();
+
+  let key;
+  try {
+    key = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+  } catch {
+    return false;
+  }
+
+  const sigBytes = await crypto.subtle.sign('HMAC', key, enc.encode(signedPayload));
+  const computed = [...new Uint8Array(sigBytes)].map((b) => b.toString(16).padStart(2, '0')).join('');
+
+  // Comparăm împotriva fiecărei valori v1 (Stripe poate trimite mai multe)
+  for (const v1 of v1s) {
+    if (v1.length !== computed.length) continue;
+    let diff = 0;
+    for (let i = 0; i < computed.length; i++) {
+      diff |= computed.charCodeAt(i) ^ v1.charCodeAt(i);
+    }
+    if (diff === 0) return true;
+  }
+  return false;
 }
 
 // ————— utilitare HTTP —————

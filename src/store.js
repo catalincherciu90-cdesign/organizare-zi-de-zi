@@ -104,7 +104,7 @@ export async function createAccount(storage, email, password) {
   const salt = randomHex(16);
   const hash = await sha256(salt + ':' + pw);
   const now = new Date().toISOString();
-  const acc = { id, email: emailLower, salt, hash, createdAt: now };
+  const acc = { id, email: emailLower, salt, hash, createdAt: now, plan: 'start', subStatus: 'inactive' };
   await storage.put('acc:' + emailLower, acc);
   await storage.put('accid:' + id, emailLower); // index invers pentru căutare după id
   return { id, email: emailLower };
@@ -122,6 +122,35 @@ export async function getAccountById(storage, accId) {
   const email = await storage.get('accid:' + accId);
   if (!email) return null;
   return (await storage.get('acc:' + email)) || null;
+}
+
+// Actualizează câmpurile de billing pe un cont (plan, subStatus, customerId, subId).
+// Actualizează doar câmpurile furnizate; returnează contul actualizat sau null.
+export async function setAccountBilling(storage, accId, { plan, subStatus, customerId, subId } = {}) {
+  if (!accId) return null;
+  const email = await storage.get('accid:' + accId);
+  if (!email) return null;
+  const acc = await storage.get('acc:' + email);
+  if (!acc) return null;
+  const updated = { ...acc };
+  if (plan !== undefined) updated.plan = plan;
+  if (subStatus !== undefined) updated.subStatus = subStatus;
+  if (customerId !== undefined) updated.customerId = customerId;
+  if (subId !== undefined) updated.subId = subId;
+  await storage.put('acc:' + email, updated);
+  return updated;
+}
+
+// Leagă un Stripe customerId de un accId (cheie cust:<customerId> → accId).
+export async function linkCustomer(storage, customerId, accId) {
+  if (!customerId || !accId) return;
+  await storage.put('cust:' + customerId, accId);
+}
+
+// Găsește accId după Stripe customerId; returnează null dacă nu există.
+export async function getAccountIdByCustomer(storage, customerId) {
+  if (!customerId) return null;
+  return (await storage.get('cust:' + customerId)) || null;
 }
 
 // Verificare credențiale: returnează accId dacă parola e corectă, altfel null.
