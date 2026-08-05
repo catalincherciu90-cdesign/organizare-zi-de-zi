@@ -14,6 +14,7 @@ export async function createRequest(storage, { profile, plan, owner = null }) {
     status: 'nou',
     note: '',
     shoppingList: [],
+    recipes: [],
     owner: owner || null, // accId al abonatului autentificat, opțional
     createdAt: now,
     updatedAt: now,
@@ -36,6 +37,7 @@ export async function updateRequest(storage, id, patch = {}) {
     status: STATUSES.includes(patch.status) ? patch.status : rec.status,
     note: patch.note !== undefined ? String(patch.note).slice(0, 500) : rec.note,
     shoppingList: patch.shoppingList !== undefined ? sanitizeShoppingList(patch.shoppingList) : (rec.shoppingList || []),
+    recipes: patch.recipes !== undefined ? sanitizeRecipes(patch.recipes) : (rec.recipes || []),
     id: rec.id,
     profile: rec.profile,
     createdAt: rec.createdAt,
@@ -312,6 +314,20 @@ export async function orgStats(storage) {
 }
 
 // ————— utilitare —————
+
+// Validează lista de rețete: array de {name, ingredients, steps}, max 15 rețete.
+// name max 80 car., ingredients max 1000 car., steps max 2000 car. Ignoră rețetele fără name.
+function sanitizeRecipes(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => ({
+      name: String(item?.name || '').trim().slice(0, 80),
+      ingredients: String(item?.ingredients || '').trim().slice(0, 1000),
+      steps: String(item?.steps || '').trim().slice(0, 2000),
+    }))
+    .filter((r) => r.name)
+    .slice(0, 15);
+}
 
 // Validează lista de cumpărături: array de string-uri, max 80 iteme, fiecare max 80 caractere.
 function sanitizeShoppingList(raw) {

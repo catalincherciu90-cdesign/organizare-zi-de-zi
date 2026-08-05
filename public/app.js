@@ -120,6 +120,7 @@ async function generate() {
     state.checked = {};
     state.code = null; // plan nou → încă netrimis
     state.shopping = []; // plan nou → fără listă de cumpărături încă
+    state.recipes = []; // plan nou → fără rețete încă
     state.notifiedGata = false; // Resetez marcajul de notificare
     state.notifyOptIn = false; // Resetez opt-in
     stopPolling(); // Opresc polling-ul
@@ -202,6 +203,9 @@ function renderResult(plan, checked = {}, opts = {}) {
   // Lista de cumpărături — apare doar dacă există produse
   renderShopping(state.shopping || [], state.checked);
 
+  // Rețete — apar doar dacă există
+  renderRecipes(state.recipes || []);
+
   updateProgress(plan);
 }
 
@@ -230,6 +234,32 @@ function renderShopping(list, checked) {
       save();
     });
     ul.appendChild(li);
+  });
+  box.classList.remove('hidden');
+}
+
+// ————— Randare rețete —————
+function renderRecipes(list) {
+  const box = $('#recipes-box');
+  const container = $('#recipes-list');
+  if (!box || !container) return;
+  container.innerHTML = '';
+  if (!list || !list.length) {
+    box.classList.add('hidden');
+    return;
+  }
+  list.forEach((recipe) => {
+    const article = document.createElement('article');
+    article.className = 'recipe-card';
+    let html = `<h5 class="recipe-name">${escapeHtml(recipe.name || '')}</h5>`;
+    if (recipe.ingredients) {
+      html += `<div class="recipe-section"><span class="recipe-section-label">Ingrediente</span><p class="recipe-text">${escapeHtml(recipe.ingredients)}</p></div>`;
+    }
+    if (recipe.steps) {
+      html += `<div class="recipe-section"><span class="recipe-section-label">Mod de preparare</span><p class="recipe-text">${escapeHtml(recipe.steps)}</p></div>`;
+    }
+    article.innerHTML = html;
+    container.appendChild(article);
   });
   box.classList.remove('hidden');
 }
@@ -357,6 +387,7 @@ async function loadByCode(code) {
     state.status = newStatus;
     state.orgNote = data.note || '';
     state.shopping = data.shoppingList || [];
+    state.recipes = data.recipes || [];
     state.checked = state.checked || {};
     if (data.nume) state.profile = { ...(state.profile || {}), nume: data.nume };
 
@@ -497,6 +528,7 @@ async function loadByCodeForPolling(code) {
     state.status = newStatus;
     state.orgNote = data.note || '';
     state.shopping = data.shoppingList || [];
+    state.recipes = data.recipes || [];
     state.checked = state.checked || {};
     if (data.nume) state.profile = { ...(state.profile || {}), nume: data.nume };
 
@@ -572,7 +604,7 @@ function showNotificationBanner(code) {
 
 // ————— Persistență —————
 function load() {
-  const defaults = { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '', accToken: null, accEmail: null, accPlan: 'start', accSubStatus: 'inactive', notifyOptIn: false, notifiedGata: false };
+  const defaults = { profile: null, plan: null, checked: {}, code: null, status: null, orgNote: '', shopping: [], recipes: [], accToken: null, accEmail: null, accPlan: 'start', accSubStatus: 'inactive', notifyOptIn: false, notifiedGata: false };
   try {
     const stored = JSON.parse(localStorage.getItem(STORE_KEY));
     // merge cu defaults — câmpurile noi (accToken, accEmail, notifyOptIn, notifiedGata) apar chiar dacă lipsesc din localStorage vechi

@@ -219,6 +219,24 @@ function fillEditor(rec) {
   const wrap = $('#ed-blocks');
   wrap.innerHTML = '';
   (rec.plan?.blocks || []).forEach((b) => wrap.appendChild(blockRow(b)));
+
+  const recipesWrap = $('#ed-recipes');
+  recipesWrap.innerHTML = '';
+  (rec.recipes || []).forEach((r) => recipesWrap.appendChild(recipeCard(r)));
+}
+
+function recipeCard(r = {}) {
+  const card = document.createElement('div');
+  card.className = 'recipe-edit';
+  card.innerHTML = `
+    <div class="recipe-edit-head">
+      <input class="re-name" type="text" placeholder="Nume rețetă (max 80 car.)" value="${esc(r.name || '')}" maxlength="80" />
+      <button type="button" class="be-del" title="Șterge rețeta" aria-label="Șterge rețeta">✕</button>
+    </div>
+    <textarea class="re-ingredients" rows="3" placeholder="Ingrediente (un ingredient pe linie sau liber)">${esc(r.ingredients || '')}</textarea>
+    <textarea class="re-steps" rows="4" placeholder="Mod de preparare">${esc(r.steps || '')}</textarea>`;
+  $('.be-del', card).addEventListener('click', () => card.remove());
+  return card;
 }
 
 function blockRow(b = {}) {
@@ -237,6 +255,10 @@ function blockRow(b = {}) {
 
 $('#add-block').addEventListener('click', () => {
   $('#ed-blocks').appendChild(blockRow({ time: '12:00', category: 'routine' }));
+});
+
+$('#add-recipe').addEventListener('click', () => {
+  $('#ed-recipes').appendChild(recipeCard());
 });
 
 $('#back-btn').addEventListener('click', showList);
@@ -258,7 +280,14 @@ $('#save-btn').addEventListener('click', async () => {
     tips: $('#ed-tips').value.split('\n').map((t) => t.trim()).filter(Boolean),
   };
   const shoppingList = $('#ed-shopping').value.split('\n').map((s) => s.trim()).filter(Boolean);
-  const payload = { plan, status: $('#ed-status').value, note: $('#ed-note').value.trim(), shoppingList };
+  const recipes = $$('#ed-recipes .recipe-edit')
+    .map((card) => ({
+      name: $('.re-name', card).value.trim(),
+      ingredients: $('.re-ingredients', card).value.trim(),
+      steps: $('.re-steps', card).value.trim(),
+    }))
+    .filter((r) => r.name);
+  const payload = { plan, status: $('#ed-status').value, note: $('#ed-note').value.trim(), shoppingList, recipes };
 
   const btn = $('#save-btn');
   btn.disabled = true;
